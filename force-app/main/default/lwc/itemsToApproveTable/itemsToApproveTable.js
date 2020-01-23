@@ -2,14 +2,14 @@
 import { LightningElement, api, track } from 'lwc';
  
 
- const foocolumn = [
+/*  const foocolumn = [
     {label: 'Opportunity name', fieldName: 'opportunityName', type: 'text'},
     {label: 'Confidence', fieldName: 'confidence', type: 'percent', cellAttributes:
     { iconName: { fieldName: 'trendIcon' }, iconPosition: 'right' }},
     {label: 'Amount', fieldName: 'amount', type: 'currency', typeAttributes: { currencyCode: 'EUR'}},
     {label: 'Contact Email', fieldName: 'contact', type: 'email'},
     {label: 'Contact Phone', fieldName: 'phone', type: 'phone'},
-]; 
+];  */
 
 
 const data = [{
@@ -34,25 +34,16 @@ const data = [{
 export default class ItemsToApproveTable extends LightningElement {
 
     @api workItemData;
-    @api myData = 'foo';
-    @api columns = foocolumn;
+    @api rowData;
+    @api columns;
 
-    //@track _columns;
-
-    get columns(){
-        console.log('strings:');
-        console.log('foocolumn is: ' +  JSON.stringify(foocolumn));
-        const myobj = this.createColumn('foo');
-        console.log('foocolumn is: ' +  foocolumn);
-        
-        return this.createColumn('foo');
+    get columns() { 
+        return this.createColumn();
     }
 
-    set columns(value) {
-        this._columns = this.createColumn(this.workItemData);
-        console.log ('in columns setter');
-        
-    }  
+    get rowData() {
+        return this.createRowData(this.workItemData);
+    }
     
      connectedCallback () {
        var columnData;
@@ -74,18 +65,23 @@ export default class ItemsToApproveTable extends LightningElement {
         return 'foo';
     } 
 
-    createColumn(field) {
-        var columnDescriptor;
-        //columnDescriptor='{"result":true, "count":42}';
-        columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
+    createColumn() {
+        var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Type", "fieldName": "Type", "type": "text"}';
-        columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "Record Name", "type": "text"}';
+        columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordName", "type": "text"}';
         columnDescriptor = '[' + columnDescriptor + ']';  
-        console.log('columnDescriptor: ' + columnDescriptor);
-        const obj =  JSON.parse(columnDescriptor);
-        return obj;
+        return JSON.parse(columnDescriptor);
     }
-
+    createRowData(workItemData) {
+        var outputData = ''; 
+        var inputData = JSON.parse(workItemData);
+        inputData.forEach(element => {
+            outputData = outputData + '{"Submitter" : "' + element.createdByName + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '"},';
+        });
+        outputData = '[' + outputData.slice(0,-1) + ']';
+        console.log('outputData is: ' + outputData);
+        return JSON.parse(outputData);  
+    }
    
 
 }
