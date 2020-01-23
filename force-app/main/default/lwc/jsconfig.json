@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "experimentalDecorators": true,
+        "baseUrl": ".",
+        "paths": {
+            "c/datatableFlow": [
+                "datatableFlow/datatableFlow.js"
+            ],
+            "c/foobarlwc": [
+                "foobarlwc/foobarlwc.js"
+            ],
+            "c/itemsToApproveTable": [
+                "itemsToApproveTable/itemsToApproveTable.js"
+            ]
+        }
+    },
+    "include": [
+        "**/*",
+        "../../../../.sfdx/typings/lwc/**/*.d.ts"
+    ],
+    "typeAcquisition": {
+        "include": [
+            "jest"
+        ]
+    }
+}
