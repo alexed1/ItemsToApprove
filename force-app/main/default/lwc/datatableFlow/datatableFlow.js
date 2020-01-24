@@ -6,16 +6,21 @@ export default class DatatableFlow extends LightningElement {
     @api columns;
     @api keyfield;
 
-    //@track _columns;
-
-  /*   get columns(){
-        return this._columns;
+    handleRowAction(event){
+        const action = event.detail.action;
+        const row = event.detail.row;
+        switch (action.name) {
+            case 'approve':
+                alert('Showing Details: ' + JSON.stringify(row));
+                break;
+            case 'reject':
+                alert('Showing Details: ' + JSON.stringify(row));
+                break;
+            case 'reassign':
+                alert('Showing Details: ' + JSON.stringify(row));
+                break;
+        }
     }
-    set columns(value) {
-        this._columns = this.columns;
-        console.log ('_columns  and column in datatable is: ' + JSON.stringify(this._columns));
-    }  
-     */
 
     getSelectedName(event) {
         const selectedRows = event.detail.selectedRows;

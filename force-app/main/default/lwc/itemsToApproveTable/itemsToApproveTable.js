@@ -2,34 +2,14 @@
 import { LightningElement, api, track } from 'lwc';
  
 
-/*  const foocolumn = [
-    {label: 'Opportunity name', fieldName: 'opportunityName', type: 'text'},
-    {label: 'Confidence', fieldName: 'confidence', type: 'percent', cellAttributes:
-    { iconName: { fieldName: 'trendIcon' }, iconPosition: 'right' }},
-    {label: 'Amount', fieldName: 'amount', type: 'currency', typeAttributes: { currencyCode: 'EUR'}},
-    {label: 'Contact Email', fieldName: 'contact', type: 'email'},
-    {label: 'Contact Phone', fieldName: 'phone', type: 'phone'},
-];  */
+const actions = [
+    { label: 'Approve', name: 'approve' },
+    { label: 'Reject', name: 'reject' },
+    { label: 'Reassign', name: 'reassign' }
+];
 
 
-const data = [{
-    id: 'a',
-    opportunityName: 'Cloudhub',
-    confidence: 0.2,
-    amount: 25000,
-    contact: 'jrogers@cloudhub.com',
-    phone: '2352235235',
-    trendIcon: 'utility:down'
-},
-{
-    id: 'b',
-    opportunityName: 'Quip',
-    confidence: 0.78,
-    amount: 740000,
-    contact: 'quipy@quip.com',
-    phone: '2352235235',
-    trendIcon: 'utility:up'
-}];
+
 
 export default class ItemsToApproveTable extends LightningElement {
 
@@ -46,30 +26,22 @@ export default class ItemsToApproveTable extends LightningElement {
     }
     
      connectedCallback () {
-       var columnData;
+       
        console.log('entering ItemstoApprove LWC');
-       //columnData = this.generateColumnData(this.workItemData);
+       
     }
     
-    generateColumnData(workItemData) {
-        var dataStructure = [];
-        var inputData = JSON.parse(workItemData);
-        console.log('entering generateColumnData');
-        console.log('workItemData is: ' + workItemData);
-
-        /* inputData.forEach(element => {
-           
-            
-        }); */
-       
-        return 'foo';
-    } 
+    handleRowAction(event){
+        
+    }
 
     createColumn() {
         var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Type", "fieldName": "Type", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordName", "type": "text"}';
-        columnDescriptor = '[' + columnDescriptor + ']';  
+        columnDescriptor = columnDescriptor + ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}'
+        columnDescriptor = '[' + columnDescriptor + ']'; 
+        console.log('columndescriptor is: ' + columnDescriptor);
         return JSON.parse(columnDescriptor);
     }
     createRowData(workItemData) {
