@@ -38,7 +38,9 @@ export default class ItemsToApproveTable extends LightningElement {
     createColumn() {
         var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Type", "fieldName": "Type", "type": "text"}';
-        columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordName", "type": "text"}';
+        columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  }';
+        //columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "https://www.salesforce.com", "type": "url",  typeAttributes: { label: "foobar" } }';
+       
         columnDescriptor = columnDescriptor + ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}'
         columnDescriptor = '[' + columnDescriptor + ']'; 
         console.log('columndescriptor is: ' + columnDescriptor);
@@ -47,8 +49,9 @@ export default class ItemsToApproveTable extends LightningElement {
     createRowData(workItemData) {
         var outputData = ''; 
         var inputData = JSON.parse(workItemData);
+        console.log('input data is: ' + workItemData);
         inputData.forEach(element => {
-            outputData = outputData + '{"Submitter" : "' + element.createdByName + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '"},';
+            outputData = outputData + '{"Submitter" : "' + element.createdByName + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '", "RecordURL" : "' + element.contextRecordURL + '"},';
         });
         outputData = '[' + outputData.slice(0,-1) + ']';
         console.log('outputData is: ' + outputData);

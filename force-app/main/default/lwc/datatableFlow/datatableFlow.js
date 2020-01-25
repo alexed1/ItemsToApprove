@@ -5,6 +5,9 @@ export default class DatatableFlow extends LightningElement {
     @api mydata;
     @api columns;
     @api keyfield;
+    @api recordData
+    @api columnNamesCSV
+
 
     handleRowAction(event){
         const action = event.detail.action;
@@ -19,8 +22,11 @@ export default class DatatableFlow extends LightningElement {
             case 'reassign':
                 alert('Showing Details: ' + JSON.stringify(row));
                 break;
+            default : break;
         }
     }
+
+   
 
     getSelectedName(event) {
         const selectedRows = event.detail.selectedRows;

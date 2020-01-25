@@ -43,6 +43,7 @@ public with sharing class GetProcessInstanceSteps {
             keyValuePair.put('createdByName', createdByUser.Name);
             keyValuePair.put('contextRecordName', contextRecordName);
             keyValuePair.put('contextRecordObjectType', objectTypeName);
+            keyValuePair.put('contextRecordURL', getRecordURL(targetObjectId, objectTypeName));
             keyValuePair.put('targetObjectId', targetObjectId);
 
             rowData.add(keyValuePair);
@@ -57,6 +58,12 @@ public with sharing class GetProcessInstanceSteps {
         List<Response> responseList = new List<Response>();
         responseList.add(response);
         return responseList;
+    }
+
+    public static String getRecordURL(String targetObjectId, String objectTypeName) {
+        String baseURL = Url.getOrgDomainUrl().toExternalForm();
+        String recordLink = baseURL + '/lightning/r/' + objectTypeName + '/' + targetObjectId + '/view';
+        return recordLink;
     }
 
 

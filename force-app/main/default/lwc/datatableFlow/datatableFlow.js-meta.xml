@@ -12,7 +12,8 @@
             <property name="columns" type="String"  />
             <property name="mydata" type="String"  />
             <property name="keyfield" type="String"  />
-           
+
+
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>
