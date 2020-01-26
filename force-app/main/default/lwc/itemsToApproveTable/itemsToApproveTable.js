@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-import { LightningElement, api, track } from 'lwc';
- 
+import { LightningElement, api, wire } from 'lwc';
+import retrieve from '@salesforce/apex/GetProcessInstanceData.retrieve';
 
 const actions = [
     { label: 'Approve', name: 'approve' },
@@ -13,16 +13,40 @@ const actions = [
 
 export default class ItemsToApproveTable extends LightningElement {
 
-    @api workItemData;
+    //@api workItemData;
     @api rowData;
     @api columns;
+    @api actorId;
+    error;
+    //DONE convert apex class to get called from here. 
+    //restructure flow
+    //pass up to apex the field name list
+    //contextobjecttype
+    //fieldnames is a csv corresponding to the context object type name
+    //both createcolumn and create rowdata call for extra items
+    //split the csv. for each field, add a column
+    //in the row data, extract the field value from the record
+
+    
 
     get columns() { 
         return this.createColumn();
     }
 
     get rowData() {
-        return this.createRowData(this.workItemData);
+        retrieve()
+            .then(result => {
+                console.log('result is: ' + result);
+                return this.createRowData(result);
+            })
+            .catch(error => {
+                console.log('error is: ' + error);
+                this.error = error;
+                return this.error;
+            });
+       
+        return [];
+    
     }
     
      connectedCallback () {

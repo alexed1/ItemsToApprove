@@ -6,9 +6,6 @@
             "c/datatableFlow": [
                 "datatableFlow/datatableFlow.js"
             ],
-            "c/foobarlwc": [
-                "foobarlwc/foobarlwc.js"
-            ],
             "c/itemsToApproveTable": [
                 "itemsToApproveTable/itemsToApproveTable.js"
             ]

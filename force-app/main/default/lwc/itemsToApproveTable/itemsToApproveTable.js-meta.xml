@@ -8,7 +8,7 @@
     </targets>
     <targetConfigs>
         <targetConfig targets="lightning__FlowScreen" >
-            <property name="workItemData" type="String"  />
+            <property name="actorId" type="String"  /> 
           
         </targetConfig>
     </targetConfigs>
