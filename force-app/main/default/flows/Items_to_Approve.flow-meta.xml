@@ -3,8 +3,8 @@
     <actionCalls>
         <name>Delete_Approval_Process</name>
         <label>Delete Approval Process</label>
-        <locationX>251</locationX>
-        <locationY>100</locationY>
+        <locationX>232</locationX>
+        <locationY>31</locationY>
         <actionName>DeleteApprovalProcess</actionName>
         <actionType>apex</actionType>
         <inputParameters>
@@ -13,18 +13,6 @@
                 <stringValue>Account.ap1</stringValue>
             </value>
         </inputParameters>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Get_Process_Instance_Steps</name>
-        <label>Get Process Instance Steps</label>
-        <locationX>198</locationX>
-        <locationY>280</locationY>
-        <actionName>GetProcessInstanceSteps</actionName>
-        <actionType>apex</actionType>
-        <connector>
-            <targetReference>consoleScreen1</targetReference>
-        </connector>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <interviewLabel>Items to Approve {!$Flow.CurrentDateTime}</interviewLabel>
@@ -45,8 +33,8 @@
     <screens>
         <name>consoleScreen1</name>
         <label>Display Results Itemsto Approve</label>
-        <locationX>388</locationX>
-        <locationY>193</locationY>
+        <locationX>387</locationX>
+        <locationY>177</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -55,9 +43,9 @@
             <extensionName>c:itemsToApproveTable</extensionName>
             <fieldType>ComponentInstance</fieldType>
             <inputParameters>
-                <name>workItemData</name>
+                <name>actorId</name>
                 <value>
-                    <elementReference>Get_Process_Instance_Steps.stepData</elementReference>
+                    <elementReference>recordId</elementReference>
                 </value>
             </inputParameters>
             <isRequired>true</isRequired>
@@ -74,11 +62,6 @@
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
-        <fields>
-            <name>dispWorkItems_0</name>
-            <fieldText>&lt;p&gt;Work Items are: &lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;{!Get_Process_Instance_Steps.curWorkItems}&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
-        </fields>
         <fields>
             <name>datatable</name>
             <extensionName>c:datatableFlow</extensionName>
@@ -111,8 +94,15 @@
         <locationX>91</locationX>
         <locationY>177</locationY>
         <connector>
-            <targetReference>Get_Process_Instance_Steps</targetReference>
+            <targetReference>consoleScreen1</targetReference>
         </connector>
     </start>
     <status>Draft</status>
+    <variables>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
 </Flow>

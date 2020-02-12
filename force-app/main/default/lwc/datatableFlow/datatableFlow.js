@@ -12,20 +12,18 @@ export default class DatatableFlow extends LightningElement {
     handleRowAction(event){
         const action = event.detail.action;
         const row = event.detail.row;
-        switch (action.name) {
-            case 'approve':
-                alert('Showing Details: ' + JSON.stringify(row));
-                break;
-            case 'reject':
-                alert('Showing Details: ' + JSON.stringify(row));
-                break;
-            case 'reassign':
-                alert('Showing Details: ' + JSON.stringify(row));
-                break;
-            default : break;
-        }
+        //rowactions should be handled by the parent.  
+        this.dispatchChangeEvent(row, action);
+
     }
 
+    dispatchChangeEvent(row, action) {
+        const rowActionTaken = new CustomEvent('rowactiontaken', {
+            bubbles: false, 
+            detail: {row, action}
+        });
+        this.dispatchEvent(rowActionTaken);
+    }
    
 
     getSelectedName(event) {

@@ -2,35 +2,51 @@
 public with sharing class GetProcessInstanceData {
  
 
-    @AuraEnabled(cacheable=true)
-    public static String retrieve () {
+     @AuraEnabled 
+    public static String process(String actorId, String action, List<String> workItemIds){
+       
+        System.debug('passed in actorId is: ' + actorId);
+        System.debug('passed in action is: ' + action);
 
-        //String actorId = requests[0].actorId;
-         
+
+        List<Approval.ProcessWorkItemRequest> listProcWrkItmReq = new List<Approval.ProcessWorkItemRequest>();
+        for ( String curWorkItemId :workItemIds) 
+        {
+                System.debug('entering loop in getWorkItem');
+                Approval.ProcessWorkItemRequest pwr = new Approval.ProcessWorkItemRequest();
+                pwr.SetComments('Automatic Transition: ' + action);
+                pwr.setWorkItemId(curWorkItemId);
+                pwr.setAction(action);  // Application will show Process Status as "Recalled"
+                //listProcWrkItmReq.add(pwr);
+                System.debug('pwr is: ' + pwr);
+                Approval.ProcessResult pr = Approval.process(pwr);
+                //System.debug('Approved ProcessInstance ID :' + curWorkItem.ProcessInstanceId );
+        }
+        return 'foo'; 
+
+        
+        
+    }
  
-        List<ProcessInstanceWorkItem> curWorkItems = [SELECT Id, ActorId, ProcessInstanceId FROM ProcessInstanceWorkItem];
-        System.debug('curWorkItems is: ' + curWorkItems);
-
-        //
-        //row data:
-       /*  context recordid: 1  --->
-               object type = Account
-               recordID = '2342'
-               recordname = 'bellona'
-               processinstanceid = '234234' */
 
 
-
-        Map<String, String> keyValuePair = new Map<String, String>();
+    @AuraEnabled
+    public static String retrieve (String actorId) {
+ 
+        List<ProcessInstanceWorkItem> curWorkItems = [SELECT Id, ActorId, ProcessInstanceId FROM ProcessInstanceWorkItem WHERE ActorId = :actorId];
+        System.debug('curWorkItems for actor ' + actorId + ' is: ' + curWorkItems);
+        
         List<Map<String, String>> rowData = new List<Map<String, String>>();
 
         for (ProcessInstanceWorkItem curWorkItem : curWorkItems) {
+            Map<String, String> keyValuePair = new Map<String, String>();
             ProcessInstance curProcessInstance = [SELECT Id, ProcessDefinitionId, TargetObjectId, CreatedById FROM ProcessInstance where Id = :curWorkItem.ProcessInstanceId];
+            System.debug('curProcessInstance is: ' + curProcessInstance);
             ProcessDefinition curProcessDefinition = [SELECT Id, TableEnumOrId FROM ProcessDefinition where Id = :curProcessInstance.ProcessDefinitionId];
             String objectTypeName = curProcessDefinition.TableEnumOrId;
             String createdById  = curProcessInstance.CreatedById;
             String targetObjectId = curProcessInstance.TargetObjectId;
-
+           
             User createdByUser = [SELECT Name,Username FROM User where Id = :createdById];
 
             keyValuePair.put('processDefinitionId', curProcessInstance.ProcessDefinitionId);
@@ -40,6 +56,8 @@ public with sharing class GetProcessInstanceData {
             keyValuePair.put('contextRecordObjectType', objectTypeName);
             keyValuePair.put('contextRecordURL', getRecordURL(targetObjectId, objectTypeName));
             keyValuePair.put('targetObjectId', targetObjectId);
+            keyValuePair.put('actorId', curWorkItem.ActorId);
+            keyValuePair.put('workItemId', curWorkItem.Id);
 
             String myQuery = 'SELECT Name FROM ' + objectTypeName + ' WHERE Id = :targetObjectId';
             SObject returnedObject = Database.query(myQuery);
@@ -47,15 +65,11 @@ public with sharing class GetProcessInstanceData {
             keyValuePair.put('contextRecordName', contextRecordName);
 
             rowData.add(keyValuePair);
+            
         }
         System.debug('rowData is: ' + rowData);
         //report back the results
-        Response response = new Response();
-        response.stepData = JSON.serialize(rowData);//start from here. examine rowData structure after serialization.
-        //System.debug('step data is: ' + response.stepData);
-
-       // List<Response> responseList = new List<Response>();
-        //responseList.add(response);
+        
         System.debug('returning: ' + JSON.serialize(rowData));
         return JSON.serialize(rowData);
     }
@@ -66,28 +80,6 @@ public with sharing class GetProcessInstanceData {
         return recordLink;
     }
 
-
-    public class Request {
-        @invocableVariable
-        public String actorId;
- 
-    }
-
-    public class Response {
-        @invocableVariable
-        public Boolean isSuccess;
-
-        @invocableVariable
-        public String errors;
-
-        @invocableVariable
-        public String stepData;
-
-
-    }
-
-    public class InvocableActionException extends Exception {
-    }
 
 
 }
