@@ -1,5 +1,5 @@
 @isTest
-public with sharing class GetProcessInstanceStepsTest {
+public with sharing class GetProcessInstanceDataTest {
 
    
    
@@ -82,16 +82,12 @@ public with sharing class GetProcessInstanceStepsTest {
 
     public static void CanRetrieveProcessInstanceWorkItems () {
 
-        GetProcessInstanceSteps.Request testReq = new GetProcessInstanceSteps.Request();
-        testReq.actorId = 'actorId';
+        String actorId = 'actorId';
        
 
-        List<GetProcessInstanceSteps.Request> reqList = new List<GetProcessInstanceSteps.Request>();
-        reqList.add(testReq);
-
-        List<GetProcessInstanceSteps.Response> testResponseList = GetProcessInstanceSteps.Retrieve(reqList);
+        String testResponseList = GetProcessInstanceData.Retrieve(actorId);
 	    
-        System.assertEquals(testResponseList[0].isSuccess,true);
+        System.assertEquals(testResponseList,'foo');
          
 
     }

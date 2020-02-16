@@ -28,7 +28,64 @@ public with sharing class GetProcessInstanceData {
         
     }
  
+    @AuraEnabled
+    public static String getFieldDescribes(String fieldNames, String objectName) {
+        System.debug('for object: ' + objectName );
+        System.debug('for fieldnames: ' + fieldNames );
+         SObjectType sobjType = ((SObject)(Type.forName('Schema.'+objectName).newInstance())).getSObjectType();
+        DescribeSObjectResult objDescribe = sobjType.getDescribe();
+      
+        System.debug('objDescribe is: ' + objDescribe);
 
+        String fieldDescribe = '';
+        String fieldType = '';
+
+        for (String fieldName : fieldNames.split(',')) {
+           System.debug('for field: ' + fieldName);
+           //getting an index error here;
+
+           Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
+           System.debug('fieldMap is: ' + fieldMap);
+           Schema.SObjectField fieldItem = fieldMap.get(fieldName);
+           System.debug('fieldItem is: ' + fieldItem);
+           if (fieldItem == null) 
+                throw new MyApexException('could not find the field: ' + fieldName + 'on the object ' + objectName);
+           Schema.DescribeFieldResult dfr = fieldItem.getDescribe();
+           System.debug('for field: ' + fieldName + ', the describe is: ' + dfr);
+
+           System.debug('type is: ' +  dfr.getType());
+           System.debug('label is: ' +  dfr.getLabel());
+           //fieldDescribe = fieldDescribe + ',{label: "' + dfr.getLabel() + '", fieldName: "' + fieldName + '", type: "' + convertType(dfr.getType().name()) + '"}';
+
+        }
+        System.debug('final fieldDescribe string is: ' + fieldDescribe); 
+
+        String temp = '[{"label": "Submitter", "fieldName": "Submitter", "type": "text"}, {"label": "Type", "fieldName": "Type", "type": "text"},' +
+    '{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  },{"type": "action", "typeAttributes": { "rowActions" : [{"label":"Approve","name":"Approve"},' +
+        '{"label":"Reject","name":"Reject"},{"label":"Reassign","name":"Removed"}], "menuAlignment" : "left" }}]';
+        System.debug('temp is: ' + temp);
+        return temp;
+        //return fieldDescribe;
+        
+    }
+
+    public class MyApexException extends Exception {
+    }
+
+    //convert the apex type to the corresponding javascript type that datatable will understand
+    private static String convertType (String apexType){
+        switch on apexType {
+            when 'STRING','PICKLIST' {
+                return 'text';
+            }
+            when 'DATE' {
+                return 'date';
+            }
+            when else {
+                throw new MyApexException ('the field type is: ' + apexType + ' and convertType doesnt have a javascript equivalent ');
+            }
+        }
+    }
 
     @AuraEnabled
     public static String retrieve (String actorId) {
