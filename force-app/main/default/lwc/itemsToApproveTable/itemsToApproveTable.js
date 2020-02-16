@@ -15,7 +15,7 @@ const actions = [
 
 export default class ItemsToApproveTable extends LightningElement {
 
-    @api rowData;
+    // @api rowData;
     @api columns;
     @api actorId;
     @api mode='single';
@@ -58,11 +58,11 @@ export default class ItemsToApproveTable extends LightningElement {
     @wire(getFieldDescribes, { objectName: '$contextObjectType', fieldNames : '$fieldNames'}) 
     columns;
      */
-     set contextObjectType(value) {
-         console.log ('setting contextObjectType to: ' + value);
-         //getFields();
-         this.contextObjectType = value;
-     }
+     // set contextObjectType(value) {
+     //     console.log ('setting contextObjectType to: ' + value);
+     //     //getFields();
+     //     this.contextObjectType = value;
+     // }
 
      getFields() {
         console.log('entering getFields');
@@ -89,7 +89,7 @@ export default class ItemsToApproveTable extends LightningElement {
 
      connectedCallback () {
        this.retrieveWorkItems();
-       const fieldDescribes = getFieldDescribes({ objectName: '$contextObjectType', fieldNames : '$fieldNames'})
+       const fieldDescribes = getFieldDescribes({ objectName: this.contextObjectType, fieldNames : this.fieldNames})
         .then(result => {
             console.log('getFieldDescribes returns: ' + result);
             this.columns = JSON.parse(result);
@@ -134,11 +134,11 @@ export default class ItemsToApproveTable extends LightningElement {
             console.log('result from process call is: ' + result);
             this.retrieveWorkItems();
             this.showToast('Approval Management', action.name + ' Complete', 'success', true);
-  
+
         })
         .catch(error => {
-            console.log('error returning from process work item apex call is: ' + error);  
-        });  
+            console.log('error returning from process work item apex call is: ' + error);
+        });
     }
 
     showToast(title, message, variant, autoClose) {
@@ -162,7 +162,7 @@ export default class ItemsToApproveTable extends LightningElement {
     createCustomColumns() {
         var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  }';
-        
+
         columnDescriptor = columnDescriptor + ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}'
         columnDescriptor = '[' + columnDescriptor ;
         const customColumns = getFieldDescribes({ objectName: this.contextObjectType, fieldNames : this.fieldNames})
@@ -178,10 +178,10 @@ export default class ItemsToApproveTable extends LightningElement {
             //this.columns = JSON.parse(columnDescriptor);
         })
         .catch(error => {
-            console.log('error returning from getFieldDescribes apex call is: ' + error);  
-        }); 
+            console.log('error returning from getFieldDescribes apex call is: ' + error);
+        });
         //given an object and a field name, find the type and label and return a valid string structure
-       
+
     }
 
     createRowData(workItemData) {
@@ -189,7 +189,7 @@ export default class ItemsToApproveTable extends LightningElement {
         var inputData = JSON.parse(workItemData);
         console.log('input data is: ' + workItemData);
         inputData.forEach(element => {
-           
+
             outputData = outputData + '{"Submitter" : "' + element.createdByName +'", "WorkItemId" : "' + element.workItemId + '", "ActorId" : "' + element.actorId + '", "TargetObjectId" : "' +  element.targetObjectId + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '", "RecordURL" : "' + element.contextRecordURL + '"},';
         });
         outputData = '[' +  outputData.slice(0,-1) + ']';
