@@ -42,7 +42,6 @@ public with sharing class GetProcessInstanceData {
 
         for (String fieldName : fieldNames.split(',')) {
            System.debug('for field: ' + fieldName);
-           //getting an index error here;
 
            Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
            System.debug('fieldMap is: ' + fieldMap);
@@ -55,17 +54,17 @@ public with sharing class GetProcessInstanceData {
 
            System.debug('type is: ' +  dfr.getType());
            System.debug('label is: ' +  dfr.getLabel());
-           //fieldDescribe = fieldDescribe + ',{label: "' + dfr.getLabel() + '", fieldName: "' + fieldName + '", type: "' + convertType(dfr.getType().name()) + '"}';
+           fieldDescribe = fieldDescribe + ',{"label" : "' + dfr.getLabel() + '", "fieldName" : "' + fieldName + '", "type" : "' + convertType(dfr.getType().name()) + '"}';
 
         }
         System.debug('final fieldDescribe string is: ' + fieldDescribe); 
 
-        String temp = '[{"label": "Submitter", "fieldName": "Submitter", "type": "text"}, {"label": "Type", "fieldName": "Type", "type": "text"},' +
-    '{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  },{"type": "action", "typeAttributes": { "rowActions" : [{"label":"Approve","name":"Approve"},' +
-        '{"label":"Reject","name":"Reject"},{"label":"Reassign","name":"Removed"}], "menuAlignment" : "left" }}]';
-        System.debug('temp is: ' + temp);
-        return temp;
-        //return fieldDescribe;
+        //String temp = '[{"label": "Submitter", "fieldName": "Submitter", "type": "text"}, {"label": "Type", "fieldName": "Type", "type": "text"},' +
+    //'{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  },{"type": "action", "typeAttributes": { "rowActions" : [{"label":"Approve","name":"Approve"},' +
+      //  '{"label":"Reject","name":"Reject"},{"label":"Reassign","name":"Removed"}], "menuAlignment" : "left" }}]';
+        //System.debug('temp is: ' + temp);
+       // return temp;
+        return fieldDescribe;
         
     }
 

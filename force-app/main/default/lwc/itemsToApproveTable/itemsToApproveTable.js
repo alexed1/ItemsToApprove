@@ -26,43 +26,8 @@ export default class ItemsToApproveTable extends LightningElement {
     //DONE convert apex class to get called from here. 
     //restructure flow
 
-    //mode is mixed or singleObject
-    //if mixed, treat as already implemented
-    //else single object
-        //pass up the field name list
-        //pass up contextobjecttype ("Account")
-    //fieldnames is a csv corresponding to the context object type name
-
-
-
-    //both createcolumn and create rowdata call for extra items
-    //split the csv. for each field, add a column
-    //in the row data, extract the field value from the record
-
-
-
-  /*   get columns() {
-        if (this.mode === 'Standard') {
-            return this.createCustomColumns();
-        }
-            
-        else if (this.mode === 'Mixed') {
-                return this.createStandardColumns();
-                
-            }
-                
-            else throw new Error('Invalid or missing value provided for the "mode" input');
-                
-    }
-
-    @wire(getFieldDescribes, { objectName: '$contextObjectType', fieldNames : '$fieldNames'}) 
-    columns;
-     */
-     set contextObjectType(value) {
-         console.log ('setting contextObjectType to: ' + value);
-         //getFields();
-         this.contextObjectType = value;
-     }
+     
+  
 
      getFields() {
         console.log('entering getFields');
@@ -88,12 +53,15 @@ export default class ItemsToApproveTable extends LightningElement {
      }
 
      connectedCallback () {
+        console.log ('entering connected callback');
        this.retrieveWorkItems();
-       const fieldDescribes = getFieldDescribes({ objectName: '$contextObjectType', fieldNames : '$fieldNames'})
+       const fieldDescribes = getFieldDescribes({ objectName: this.contextObjectType, fieldNames : this.fieldNames})
         .then(result => {
             console.log('getFieldDescribes returns: ' + result);
-            this.columns = JSON.parse(result);
-            console.log('columns set to ' + JSON.parse(result));
+            
+            const fullColumns = this.createCustomColumns() + result + ']';
+            console.log('columns set to ' + fullColumns);
+            this.columns = JSON.parse(fullColumns);
             })
             .catch(error => {
                 console.log('error is: ' + JSON.stringify(error));
@@ -156,7 +124,7 @@ export default class ItemsToApproveTable extends LightningElement {
         columnDescriptor = columnDescriptor + ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}'
         columnDescriptor = '[' + columnDescriptor + ']';
         console.log('total standard columnDescriptor is:  ' + columnDescriptor);
-        return JSON.parse(columnDescriptor);
+        return columnDescriptor;
     }
 
     createCustomColumns() {
@@ -165,21 +133,7 @@ export default class ItemsToApproveTable extends LightningElement {
         
         columnDescriptor = columnDescriptor + ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}'
         columnDescriptor = '[' + columnDescriptor ;
-        const customColumns = getFieldDescribes({ objectName: this.contextObjectType, fieldNames : this.fieldNames})
-        .then(result => {
-            console.log('result from getFieldDescribes call is: ' + result);
-            columnDescriptor = columnDescriptor + result + ']';
-            console.log('total custom columnDescriptor is:  ' + columnDescriptor);
-            const temp = '[{"label": "Submitter", "fieldName": "Submitter", "type": "text"},' +
-           '{"label": "Type", "fieldName": "Type", "type": "text"},' +
-            '{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  },{"type": "action", "typeAttributes": { "rowActions" : [{"label":"Approve","name":"Approve"},' +
-            '{"label":"Reject","name":"Reject"},{"label":"Reassign","name":"Removed"}], "menuAlignment" : "left" }}]';
-            this.columns = JSON.parse(temp);
-            //this.columns = JSON.parse(columnDescriptor);
-        })
-        .catch(error => {
-            console.log('error returning from getFieldDescribes apex call is: ' + error);  
-        }); 
+        return columnDescriptor;
         //given an object and a field name, find the type and label and return a valid string structure
        
     }
