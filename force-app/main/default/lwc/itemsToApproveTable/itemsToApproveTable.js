@@ -1,17 +1,15 @@
 /* eslint-disable no-console */
 import { LightningElement, api,track, wire} from 'lwc';
-import retrieve from '@salesforce/apex/GetProcessInstanceData.retrieve';
+
 import process from '@salesforce/apex/GetProcessInstanceData.process';
-import getFieldDescribes from '@salesforce/apex/GetProcessInstanceData.getFieldDescribes';
+
+import GetProcessItemData from '@salesforce/apex/GetProcessInstanceData.getProcessItemData';
 
 const actions = [
     { label: 'Approve', name: 'Approve' },
     { label: 'Reject', name: 'Reject' },
     { label: 'Reassign', name: 'Removed' }
 ];
-
-
-
 
 export default class ItemsToApproveTable extends LightningElement {
 
@@ -23,45 +21,51 @@ export default class ItemsToApproveTable extends LightningElement {
     @api fieldNames; //field names provided by called to be rendered as columns
     @track rowData;
     error;
-    //DONE convert apex class to get called from here. 
-    //restructure flow
+    fieldDescribes; //not being used
+    datatableColumnFieldDescriptorString
 
-     
-  
+    connectedCallback () {
+       console.log ('entering connected callback');
+      //this.createColumns();
+       this.getServerData();
+       
+       //this.setRowData();
 
-     getFields() {
-        console.log('entering getFields');
-        if ((this.contextObjectType) && (this.fieldNames)) {
-			console.log('data available to call getFieldDescribes');
-            const foo = getFieldDescribes({ objectName: '$contextObjectType', fieldNames : '$fieldNames'})
-            .then(result => {
-                console.log('getFieldDescribes returns: ' + result);
-                this.columns = JSON.parse(result);
-                console.log('columns set to ' + JSON.parse(result));
-                })
-                .catch(error => {
-                    console.log('error is: ' + JSON.stringify(error));
-                    this.error = error;
-                    return this.error;
-                });
-            }
-        else {
-            console.log('data not available to call getFieldDescribes');
+       console.log('entering ItemstoApprove LWC');
 
-            }
+       
 
-     }
 
-     connectedCallback () {
-        console.log ('entering connected callback');
-       this.retrieveWorkItems();
-       const fieldDescribes = getFieldDescribes({ objectName: this.contextObjectType, fieldNames : this.fieldNames})
+
+      // break getFieldDescribes up into a true getFieldDescribes and a set Table Columns. return the field describes and store locally
+//if mode is single, call getFieldDescribes and return locally
+
+
+       //setTableColumns retrieves field types for the custom fields
+
+       
+
+       //setRowData will take the work items and call a function that does a query
+
+    }
+
+
+
+   
+    //first, call apex to grab data. pass in mode.
+       //regardless of mode:
+       //retrieve workitems
+       //if mode is single, get field describes
+       //load row data, including fielddescribes if single.
+       //return the rowdata, fielddescribes and column data
+    getServerData() { 
+        let instanceData = GetProcessItemData({ actorId: this.actorId, objectName: this.contextObjectType, fieldNames : this.fieldNames, mode : this.mode})
         .then(result => {
-            console.log('getFieldDescribes returns: ' + result);
-            
-            const fullColumns = this.createCustomColumns() + result + ']';
-            console.log('columns set to ' + fullColumns);
-            this.columns = JSON.parse(fullColumns);
+            console.log('getProcessItemData returns: ' + result);
+            let processInstanceData = JSON.parse(result);
+            this.datatableColumnFieldDescriptorString = processInstanceData.datatableColumnFieldDescriptorString;
+            this.createColumns();
+            //this.rowData = this.createRowData(processInstanceData.rowData);
             })
             .catch(error => {
                 console.log('error is: ' + JSON.stringify(error));
@@ -69,23 +73,27 @@ export default class ItemsToApproveTable extends LightningElement {
                 return this.error;
             });
 
-       console.log('entering ItemstoApprove LWC');
-
     }
 
-    retrieveWorkItems () {
-        console.log('retrieving process work items for user: ' + this.actorId);
-        retrieve({ actorId: this.actorId})
-            .then(result => {
-                console.log('result is: ' + result);
-                this.rowData = this.createRowData(result);
-            })
-            .catch(error => {
-                console.log('error is: ' + error);
-                this.error = error;
-                return this.error;
-            });
+
+    createColumns() {
+        var fullColumns = '';
+        if (this.mode.toLowerCase() === 'single') {
+            fullColumns = this.createCustomColumns() + this.datatableColumnFieldDescriptorString + ']';
+            console.log('columns set to ' + fullColumns);
+            //this.columns = JSON.parse('[{"label" : "Account Rating", "fieldName" : "Rating", "type" : "text"}]');
+            this.columns = JSON.parse(fullColumns);
+        } else if (this.mode.toLowerCase() === 'mixed')  {
+                fullColumns = this.createStandardColumns();
+                console.log('columns set to ' + fullColumns);
+                this.columns = JSON.parse(fullColumns);
+        } else  {
+            console.log('in error case');
+            //this doesn't work:
+            throw new Error('Unsupported value provided for Mode. Use Mixed or Single');
+        }    
     }
+
     //receive event from child datatable
     handleRowAction(event){
         console.log('entering handleRowAction in itemsToApproveTable.js');

@@ -2,71 +2,149 @@
 public with sharing class GetProcessInstanceData {
  
 
-     @AuraEnabled 
-    public static String process(String actorId, String action, List<String> workItemIds){
-       
-        System.debug('passed in actorId is: ' + actorId);
-        System.debug('passed in action is: ' + action);
+     
 
+    public class ProcessInstanceData {
+        List<Schema.DescribeFieldResult> fieldDescribes;
+        String rowData;
 
-        List<Approval.ProcessWorkItemRequest> listProcWrkItmReq = new List<Approval.ProcessWorkItemRequest>();
-        for ( String curWorkItemId :workItemIds) 
-        {
-                System.debug('entering loop in getWorkItem');
-                Approval.ProcessWorkItemRequest pwr = new Approval.ProcessWorkItemRequest();
-                pwr.SetComments('Automatic Transition: ' + action);
-                pwr.setWorkItemId(curWorkItemId);
-                pwr.setAction(action);  // Application will show Process Status as "Recalled"
-                //listProcWrkItmReq.add(pwr);
-                System.debug('pwr is: ' + pwr);
-                Approval.ProcessResult pr = Approval.process(pwr);
-                //System.debug('Approved ProcessInstance ID :' + curWorkItem.ProcessInstanceId );
-        }
-        return 'foo'; 
-
-        
-        
+        String datatableColumnFieldDescriptorString;
     }
  
     @AuraEnabled
-    public static String getFieldDescribes(String fieldNames, String objectName) {
+    public static string getProcessItemData(String actorId, String fieldNames, String objectName, List<SObject> targetRecords){
+        ProcessInstanceData curPID = new ProcessInstanceData();
+        curPID= getFieldMetadataAndColumnDescriptor( curPID, fieldNames,  objectName);
+        curPID.rowData = getRowData(actorId, fieldNames);
+        return JSON.serialize(curPID);  
+    }
+
+    //get field describe information for the standard fields and any custom fields. return the field descriptor information for later use (the type of each field is needed to build row data) and also generate a column description string that can be used to pass to datatable
+    //these two functions could be separated, but this way requires only one et of describe calls
+    @AuraEnabled
+    public static ProcessInstanceData getFieldMetadataAndColumnDescriptor(ProcessInstanceData curPID, String customFieldNames, String objectName) {
         System.debug('for object: ' + objectName );
-        System.debug('for fieldnames: ' + fieldNames );
-         SObjectType sobjType = ((SObject)(Type.forName('Schema.'+objectName).newInstance())).getSObjectType();
+        System.debug('for fieldnames: ' + customFieldNames );
+        SObjectType sobjType = ((SObject)(Type.forName('Schema.'+objectName).newInstance())).getSObjectType();
         DescribeSObjectResult objDescribe = sobjType.getDescribe();
       
         System.debug('objDescribe is: ' + objDescribe);
 
-        String fieldDescribe = '';
+        String datatableColumnFieldDescriptor = '';
         String fieldType = '';
+        List<Schema.DescribeFieldResult> curFieldDescribes = new List<Schema.DescribeFieldResult>();
 
-        for (String fieldName : fieldNames.split(',')) {
+        for (String fieldName : customFieldNames.split(',')) {
            System.debug('for field: ' + fieldName);
 
            Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
-           System.debug('fieldMap is: ' + fieldMap);
            Schema.SObjectField fieldItem = fieldMap.get(fieldName);
-           System.debug('fieldItem is: ' + fieldItem);
            if (fieldItem == null) 
                 throw new MyApexException('could not find the field: ' + fieldName + 'on the object ' + objectName);
            Schema.DescribeFieldResult dfr = fieldItem.getDescribe();
-           System.debug('for field: ' + fieldName + ', the describe is: ' + dfr);
-
-           System.debug('type is: ' +  dfr.getType());
-           System.debug('label is: ' +  dfr.getLabel());
-           fieldDescribe = fieldDescribe + ',{"label" : "' + dfr.getLabel() + '", "fieldName" : "' + fieldName + '", "type" : "' + convertType(dfr.getType().name()) + '"}';
+           curFieldDescribes.add(dfr);
+           datatableColumnFieldDescriptor = datatableColumnFieldDescriptor + ',{"label" : "' + dfr.getLabel() + '", "fieldName" : "' + fieldName + '", "type" : "' + convertType(dfr.getType().name()) + '"}';
 
         }
-        System.debug('final fieldDescribe string is: ' + fieldDescribe); 
+        System.debug('final fieldDescribe string is: ' + datatableColumnFieldDescriptor); 
 
-        //String temp = '[{"label": "Submitter", "fieldName": "Submitter", "type": "text"}, {"label": "Type", "fieldName": "Type", "type": "text"},' +
-    //'{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  },{"type": "action", "typeAttributes": { "rowActions" : [{"label":"Approve","name":"Approve"},' +
-      //  '{"label":"Reject","name":"Reject"},{"label":"Reassign","name":"Removed"}], "menuAlignment" : "left" }}]';
-        //System.debug('temp is: ' + temp);
-       // return temp;
-        return fieldDescribe;
+        //curPID.fieldDescribes = curFieldDescribes;
+        curPID.datatableColumnFieldDescriptorString = datatableColumnFieldDescriptor;
+        return curPID;
         
     }
+
+
+    
+    public static String getRowData (String actorId, String fieldNames ) {
+ 
+        List<ProcessInstanceWorkItem> curWorkItems = [SELECT Id, ActorId, ProcessInstanceId FROM ProcessInstanceWorkItem WHERE ActorId = :actorId];
+        System.debug('curWorkItems for actor ' + actorId + ' is: ' + curWorkItems);
+        
+        List<Map<String, String>> rowData = new List<Map<String, String>>();
+
+        for (ProcessInstanceWorkItem curWorkItem : curWorkItems) {
+            //valueMap aggregates record and metadata from a variety of sources and turns it into a map that can be passed as row data to datatable
+            Map<String, String> valueMap = new Map<String, String>();
+            ProcessInstance curProcessInstance = [SELECT Id, ProcessDefinitionId, TargetObjectId, CreatedById FROM ProcessInstance where Id = :curWorkItem.ProcessInstanceId];
+            System.debug('curProcessInstance is: ' + curProcessInstance);
+            ProcessDefinition curProcessDefinition = [SELECT Id, TableEnumOrId FROM ProcessDefinition where Id = :curProcessInstance.ProcessDefinitionId];
+            String objectTypeName = curProcessDefinition.TableEnumOrId;
+            String createdById  = curProcessInstance.CreatedById;
+            String targetObjectId = curProcessInstance.TargetObjectId;
+           
+            User createdByUser = [SELECT Name,Username FROM User where Id = :createdById];
+
+            //a row of data about an approval task can consist of data from a variety of sources
+            //first get values related to the approval process and the submitter
+            valueMap.put('processDefinitionId', curProcessInstance.ProcessDefinitionId);
+            valueMap.put('createdById', createdById);
+            valueMap.put('createdByUsername', createdByUser.Username);
+            valueMap.put('createdByName', createdByUser.Name);
+            valueMap.put('contextRecordObjectType', objectTypeName);
+            
+            valueMap.put('targetObjectId', targetObjectId);
+            valueMap.put('actorId', curWorkItem.ActorId);
+            valueMap.put('workItemId', curWorkItem.Id);
+
+            //then get fields related to the underlying record
+            valueMap = getRecordData ( valueMap, targetObjectId,  fieldNames,  objectTypeName );
+            
+            rowData.add(valueMap);
+            
+        }
+        System.debug('rowData is: ' + rowData);
+        //report back the results
+        
+        System.debug('returning: ' + JSON.serialize(rowData));
+        return JSON.serialize(rowData);
+    }
+
+    public static Map<String, String>  getRecordData (Map<String, String> valueMap, String targetObjectId, String fieldNames, String objectTypeName ) {
+        valueMap.put('contextRecordURL', getRecordURL(targetObjectId, objectTypeName));
+        //get data about the underlying records
+        String myQuery = 'SELECT Name,' +  fieldNames    +' FROM ' + objectTypeName + ' WHERE Id = :targetObjectId';
+        SObject returnedObject = Database.query(myQuery);
+        String contextRecordName = (String) returnedObject.get('Name');
+        valueMap.put('contextRecordName', contextRecordName);
+
+        for(String field : fieldNames.split(',')) {
+            valueMap.put(field, ToString(returnedObject.get(field), field));
+        }
+        System.debug('returning valuemap from getRecordData: ' + valueMap);
+        return valueMap;
+    }
+
+    //database value return from dynamic soql as Objects. 
+    //find the type of this fieldName by looking it up in the list of retrieved fieldDescribes
+    //then convert it to string
+    public static String ToString (Object fieldValue, String fieldName ) {
+        if (fieldValue == null) return '';
+        //System.debug('curFieldDescribes is: ' + curFieldDescribes);
+        System.debug('field name is : ' + fieldName);
+        System.debug('fieldValue is: ' + fieldValue);
+        String fieldType;
+        String stringRepresentation;
+       /*  for(Schema.DescribeFieldResult curDFR : curFieldDescribes) {
+            if (curDFR.getName() == fieldName) {
+                System.debug('matched fieldName and dfr for fieldName ' + fieldName);
+                fieldType = curDFR.getType().name();
+            }
+
+        }
+        System.debug('fieldType is: ' + fieldType); */
+        /* switch on (fieldType) {
+            when 'DATE' {
+                //stringRepresentation = fieldValue.value();
+            }
+            when else {
+                stringRepresentation = (String)fieldValue;
+            }
+
+        } */
+        return fieldValue.toString();
+    }
+
 
     public class MyApexException extends Exception {
     }
@@ -86,48 +164,27 @@ public with sharing class GetProcessInstanceData {
         }
     }
 
-    @AuraEnabled
-    public static String retrieve (String actorId) {
- 
-        List<ProcessInstanceWorkItem> curWorkItems = [SELECT Id, ActorId, ProcessInstanceId FROM ProcessInstanceWorkItem WHERE ActorId = :actorId];
-        System.debug('curWorkItems for actor ' + actorId + ' is: ' + curWorkItems);
-        
-        List<Map<String, String>> rowData = new List<Map<String, String>>();
+    @AuraEnabled 
+    public static String process(String actorId, String action, List<String> workItemIds){
+       
+        System.debug('passed in actorId is: ' + actorId);
+        System.debug('passed in action is: ' + action);
 
-        for (ProcessInstanceWorkItem curWorkItem : curWorkItems) {
-            Map<String, String> keyValuePair = new Map<String, String>();
-            ProcessInstance curProcessInstance = [SELECT Id, ProcessDefinitionId, TargetObjectId, CreatedById FROM ProcessInstance where Id = :curWorkItem.ProcessInstanceId];
-            System.debug('curProcessInstance is: ' + curProcessInstance);
-            ProcessDefinition curProcessDefinition = [SELECT Id, TableEnumOrId FROM ProcessDefinition where Id = :curProcessInstance.ProcessDefinitionId];
-            String objectTypeName = curProcessDefinition.TableEnumOrId;
-            String createdById  = curProcessInstance.CreatedById;
-            String targetObjectId = curProcessInstance.TargetObjectId;
-           
-            User createdByUser = [SELECT Name,Username FROM User where Id = :createdById];
 
-            keyValuePair.put('processDefinitionId', curProcessInstance.ProcessDefinitionId);
-            keyValuePair.put('createdById', createdById);
-            keyValuePair.put('createdByUsername', createdByUser.Username);
-            keyValuePair.put('createdByName', createdByUser.Name);
-            keyValuePair.put('contextRecordObjectType', objectTypeName);
-            keyValuePair.put('contextRecordURL', getRecordURL(targetObjectId, objectTypeName));
-            keyValuePair.put('targetObjectId', targetObjectId);
-            keyValuePair.put('actorId', curWorkItem.ActorId);
-            keyValuePair.put('workItemId', curWorkItem.Id);
-
-            String myQuery = 'SELECT Name FROM ' + objectTypeName + ' WHERE Id = :targetObjectId';
-            SObject returnedObject = Database.query(myQuery);
-            String contextRecordName = (String) returnedObject.get('Name');
-            keyValuePair.put('contextRecordName', contextRecordName);
-
-            rowData.add(keyValuePair);
-            
+        List<Approval.ProcessWorkItemRequest> listProcWrkItmReq = new List<Approval.ProcessWorkItemRequest>();
+        for ( String curWorkItemId :workItemIds) 
+        {
+                System.debug('entering loop in getWorkItem');
+                Approval.ProcessWorkItemRequest pwr = new Approval.ProcessWorkItemRequest();
+                pwr.SetComments('Automatic Transition: ' + action);
+                pwr.setWorkItemId(curWorkItemId);
+                pwr.setAction(action);  // Application will show Process Status as "Recalled"
+                //listProcWrkItmReq.add(pwr);
+                System.debug('pwr is: ' + pwr);
+                Approval.ProcessResult pr = Approval.process(pwr);
+                //System.debug('Approved ProcessInstance ID :' + curWorkItem.ProcessInstanceId );
         }
-        System.debug('rowData is: ' + rowData);
-        //report back the results
-        
-        System.debug('returning: ' + JSON.serialize(rowData));
-        return JSON.serialize(rowData);
+        return 'foo';    
     }
 
     public static String getRecordURL(String targetObjectId, String objectTypeName) {
