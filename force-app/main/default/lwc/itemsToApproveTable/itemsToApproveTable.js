@@ -65,7 +65,7 @@ export default class ItemsToApproveTable extends LightningElement {
             let processInstanceData = JSON.parse(result);
             this.datatableColumnFieldDescriptorString = processInstanceData.datatableColumnFieldDescriptorString;
             this.createColumns();
-            //this.rowData = this.createRowData(processInstanceData.rowData);
+            this.rowData = this.createRowData(processInstanceData.rowData);
             })
             .catch(error => {
                 console.log('error is: ' + JSON.stringify(error));
@@ -81,7 +81,6 @@ export default class ItemsToApproveTable extends LightningElement {
         if (this.mode.toLowerCase() === 'single') {
             fullColumns = this.createCustomColumns() + this.datatableColumnFieldDescriptorString + ']';
             console.log('columns set to ' + fullColumns);
-            //this.columns = JSON.parse('[{"label" : "Account Rating", "fieldName" : "Rating", "type" : "text"}]');
             this.columns = JSON.parse(fullColumns);
         } else if (this.mode.toLowerCase() === 'mixed')  {
                 fullColumns = this.createStandardColumns();
@@ -146,13 +145,20 @@ export default class ItemsToApproveTable extends LightningElement {
        
     }
 
-    createRowData(workItemData) {
+    createRowData(rowData) {
         var outputData = '';
-        var inputData = JSON.parse(workItemData);
-        console.log('input data is: ' + workItemData);
+        var inputData = JSON.parse(rowData);
+        console.log('input data is: ' + rowData);
         inputData.forEach(element => {
            
-            outputData = outputData + '{"Submitter" : "' + element.createdByName +'", "WorkItemId" : "' + element.workItemId + '", "ActorId" : "' + element.actorId + '", "TargetObjectId" : "' +  element.targetObjectId + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '", "RecordURL" : "' + element.contextRecordURL + '"},';
+            outputData = outputData + '{"Submitter" : "' + element.createdByName +'", "WorkItemId" : "' + element.workItemId + '", "ActorId" : "' + element.actorId + '", "TargetObjectId" : "' +  element.targetObjectId + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '", "RecordURL" : "' + element.contextRecordURL + '",'; 
+            
+            this.fieldNames.split(',').forEach(fieldName => {
+                outputData = outputData + ' "' + fieldName + '" : "' + element[fieldName] + '",';
+            })            
+            
+            outputData = outputData.slice(0,-1) + '},';
+        
         });
         outputData = '[' +  outputData.slice(0,-1) + ']';
         console.log('outputData is: ' + outputData);
