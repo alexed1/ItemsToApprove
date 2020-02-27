@@ -11,6 +11,9 @@
             ],
             "c/toastMessage": [
                 "toastMessage/toastMessage.js"
+            ],
+            "c/ucModal": [
+                "ucModal/ucModal.js"
             ]
         }
     },

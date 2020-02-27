@@ -1,9 +1,7 @@
 /* eslint-disable no-console */
-import { LightningElement, api,track, wire} from 'lwc';
-
+import { LightningElement, api,track} from 'lwc';
 import process from '@salesforce/apex/GetProcessInstanceData.process';
-
-import GetProcessItemData from '@salesforce/apex/GetProcessInstanceData.getProcessItemData';
+import getProcessItemData from '@salesforce/apex/GetProcessInstanceData.getProcessItemData';
 
 const actions = [
     { label: 'Approve', name: 'Approve' },
@@ -11,75 +9,53 @@ const actions = [
     { label: 'Reassign', name: 'Removed' }
 ];
 
+settings = {
+    reactionConfirm: {label: 'Ok', variant: 'destructive', value: 'yes'},
+    reactionCancel: {label: 'Cancel', variant: 'brand', value: 'no'}
+};
+
 export default class ItemsToApproveTable extends LightningElement {
 
-    @api rowData;
-    @api columns;
+    //@api rowData;
+   // @api columns;
     @api actorId;
     @api mode='single';
     @api contextObjectType;
     @api fieldNames; //field names provided by called to be rendered as columns
-    @track rowData;
     error;
     fieldDescribes; //not being used
     datatableColumnFieldDescriptorString
+    selectedRows;
 
-    connectedCallback () {
-       console.log ('entering connected callback');
-      //this.createColumns();
+    connectedCallback () {      
        this.getServerData();
-       
-       //this.setRowData();
-
-       console.log('entering ItemstoApprove LWC');
-
-       
-
-
-
-      // break getFieldDescribes up into a true getFieldDescribes and a set Table Columns. return the field describes and store locally
-//if mode is single, call getFieldDescribes and return locally
-
-
-       //setTableColumns retrieves field types for the custom fields
-
-       
-
-       //setRowData will take the work items and call a function that does a query
 
     }
-
-
-
    
-    //first, call apex to grab data. pass in mode.
-       //regardless of mode:
-       //retrieve workitems
-       //if mode is single, get field describes
-       //load row data, including fielddescribes if single.
-       //return the rowdata, fielddescribes and column data
+    //call apex and get back an object containing both row and column information
+    //column information is only fetched when Mode is Single, which means that the table will be limited to a single record and can therefore show columns of fields from that record (passed in as fieldNames)
+    //row data is a mix of metadata from the approval process, the submitter, and the context record
     getServerData() { 
-        let instanceData = GetProcessItemData({ actorId: this.actorId, objectName: this.contextObjectType, fieldNames : this.fieldNames, mode : this.mode})
+        getProcessItemData({ actorId: this.actorId, objectName: this.contextObjectType, fieldNames : this.fieldNames, mode : this.mode})
         .then(result => {
             console.log('getProcessItemData returns: ' + result);
             let processInstanceData = JSON.parse(result);
             this.datatableColumnFieldDescriptorString = processInstanceData.datatableColumnFieldDescriptorString;
             this.createColumns();
-            this.rowData = this.createRowData(processInstanceData.rowData);
+            this.rowData = this.generateRowData(processInstanceData.rowData);
             })
             .catch(error => {
-                console.log('error is: ' + JSON.stringify(error));
+                console.log('error is: ' + error);
                 this.error = error;
                 return this.error;
             });
-
     }
 
 
     createColumns() {
         var fullColumns = '';
         if (this.mode.toLowerCase() === 'single') {
-            fullColumns = this.createCustomColumns() + this.datatableColumnFieldDescriptorString + ']';
+            fullColumns = this.createCustomColumns() + this.datatableColumnFieldDescriptorString +  this.addRowActionMenu() + ']';
             console.log('columns set to ' + fullColumns);
             this.columns = JSON.parse(fullColumns);
         } else if (this.mode.toLowerCase() === 'mixed')  {
@@ -93,27 +69,30 @@ export default class ItemsToApproveTable extends LightningElement {
         }    
     }
 
+    updateSelectedRows(event) {
+        this.selectedRows = event.detail.selectedRows;
+        // Display that fieldName of the selected rows
+        //for (let i = 0; i < selectedRows.length; i++){
+         //   alert("You selected: " + selectedRows[i].opportunityName);
+        //}
+    }
+
     //receive event from child datatable
     handleRowAction(event){
         console.log('entering handleRowAction in itemsToApproveTable.js');
         const action = event.detail.action;
         let row = event.detail.row;
-        console.log('action is: ' + JSON.stringify(action));
-        console.log('row.ActorId is:' + row.ActorId);
-        console.log('action.name is: ' + action.name);
-        console.log('workitemid is: ' + row.WorkItemId);
         const workItemIds = [];
         workItemIds.push(row.WorkItemId);
-        const processResult = process({ actorId: row.ActorId, action : action.name, workItemIds : workItemIds})
-        .then(result => {
-            console.log('result from process call is: ' + result);
-            this.retrieveWorkItems();
-            this.showToast('Approval Management', action.name + ' Complete', 'success', true);
-  
-        })
-        .catch(error => {
-            console.log('error returning from process work item apex call is: ' + error);  
-        });  
+        process({ actorId: row.ActorId, action : action.name, workItemIds : workItemIds})
+            .then(result => {
+                console.log('result from process call is: ' + result);
+                this.showToast('Approval Management', action.name + ' Complete', 'success', true);
+                this.getServerData();
+            })
+            .catch(error => {
+                console.log('error returning from process work item apex call is: ' + error);  
+            });  
     }
 
     showToast(title, message, variant, autoClose) {
@@ -128,31 +107,32 @@ export default class ItemsToApproveTable extends LightningElement {
         var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Type", "fieldName": "Type", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  }';
-        columnDescriptor = columnDescriptor + ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}'
+        columnDescriptor = columnDescriptor + this.addRowActionMenu();
         columnDescriptor = '[' + columnDescriptor + ']';
         console.log('total standard columnDescriptor is:  ' + columnDescriptor);
         return columnDescriptor;
     }
 
+    addRowActionMenu() {
+        return  ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}';
+    }
+
     createCustomColumns() {
         var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
         columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  }';
-        
-        columnDescriptor = columnDescriptor + ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}'
         columnDescriptor = '[' + columnDescriptor ;
         return columnDescriptor;
         //given an object and a field name, find the type and label and return a valid string structure
-       
     }
 
-    createRowData(rowData) {
+    generateRowData(rowData) {
         var outputData = '';
         var inputData = JSON.parse(rowData);
         console.log('input data is: ' + rowData);
         inputData.forEach(element => {
            
             outputData = outputData + '{"Submitter" : "' + element.createdByName +'", "WorkItemId" : "' + element.workItemId + '", "ActorId" : "' + element.actorId + '", "TargetObjectId" : "' +  element.targetObjectId + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '", "RecordURL" : "' + element.contextRecordURL + '",'; 
-            
+            //values for custom fields have been retrned in the rowdata and here are put into the format expected by datatable
             this.fieldNames.split(',').forEach(fieldName => {
                 outputData = outputData + ' "' + fieldName + '" : "' + element[fieldName] + '",';
             })            
@@ -163,6 +143,37 @@ export default class ItemsToApproveTable extends LightningElement {
         outputData = '[' +  outputData.slice(0,-1) + ']';
         console.log('outputData is: ' + outputData);
         return JSON.parse(outputData);
+    }
+
+    get modalReactions() {
+        return [this.settings.reactionConfirm, this.settings.reactionCancel];
+    }
+
+    handleModalReactionButtonClick(event) {
+        if (event.detail.value === this.settings.reactionConfirm.value) {
+            this.dispatchValueChangedEvent(this.searchString);
+        }
+    }
+
+
+
+    dispatchValueChangedEvent(value) {
+        let returnedValue = value;
+        let valueType = this.settings.stringDataType;
+        if (!returnedValue) {
+            returnedValue = this.singleSelect ? (this.existingMembers.length ? this.existingMembers[0] : null) : this.existingMembers;
+            valueType = this.settings.referenceDataType;
+        }
+
+        const valueChangedEvent = new CustomEvent('valuechanged', {
+            detail: {
+                id: this.name,
+                newValue: returnedValue,
+                newValueType: valueType,
+                newValueObjectType: this.selectedType
+            }
+        });
+        this.dispatchEvent(valueChangedEvent);
     }
 
 

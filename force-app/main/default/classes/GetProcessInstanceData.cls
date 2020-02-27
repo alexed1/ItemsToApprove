@@ -1,28 +1,23 @@
 //get the steps associated with an actor (user or queue)
 public with sharing class GetProcessInstanceData {
  
-
-     
-
+    //this is just a convenient way to return two very different pieces of data to the component
     public class ProcessInstanceData {
-        List<Schema.DescribeFieldResult> fieldDescribes;
         String rowData;
-
         String datatableColumnFieldDescriptorString;
     }
  
     @AuraEnabled
     public static string getProcessItemData(String actorId, String fieldNames, String objectName, List<SObject> targetRecords){
         ProcessInstanceData curPID = new ProcessInstanceData();
-        curPID= getFieldMetadataAndColumnDescriptor( curPID, fieldNames,  objectName);
+        curPID= generateColumnDescriptionForCustomColumns( curPID, fieldNames,  objectName);
         curPID.rowData = getRowData(actorId, fieldNames);
         return JSON.serialize(curPID);  
     }
 
-    //get field describe information for the standard fields and any custom fields. return the field descriptor information for later use (the type of each field is needed to build row data) and also generate a column description string that can be used to pass to datatable
-    //these two functions could be separated, but this way requires only one et of describe calls
+    //get field information (label, type, name) corresponding to custom fields the user wants to display
     @AuraEnabled
-    public static ProcessInstanceData getFieldMetadataAndColumnDescriptor(ProcessInstanceData curPID, String customFieldNames, String objectName) {
+    public static ProcessInstanceData generateColumnDescriptionForCustomColumns(ProcessInstanceData curPID, String customFieldNames, String objectName) {
         System.debug('for object: ' + objectName );
         System.debug('for fieldnames: ' + customFieldNames );
         SObjectType sobjType = ((SObject)(Type.forName('Schema.'+objectName).newInstance())).getSObjectType();
@@ -58,6 +53,7 @@ public with sharing class GetProcessInstanceData {
     
     public static String getRowData (String actorId, String fieldNames ) {
  
+        //in approval processes, work items represent individual tasks assigned to an approver
         List<ProcessInstanceWorkItem> curWorkItems = [SELECT Id, ActorId, ProcessInstanceId FROM ProcessInstanceWorkItem WHERE ActorId = :actorId];
         System.debug('curWorkItems for actor ' + actorId + ' is: ' + curWorkItems);
         
@@ -93,8 +89,6 @@ public with sharing class GetProcessInstanceData {
             rowData.add(valueMap);
             
         }
-        System.debug('rowData is: ' + rowData);
-        //report back the results
         
         System.debug('returning: ' + JSON.serialize(rowData));
         return JSON.serialize(rowData);
@@ -115,33 +109,10 @@ public with sharing class GetProcessInstanceData {
         return valueMap;
     }
 
-    //database value return from dynamic soql as Objects. 
-    //find the type of this fieldName by looking it up in the list of retrieved fieldDescribes
-    //then convert it to string
+
     public static String ToString (Object fieldValue, String fieldName ) {
-        if (fieldValue == null) return '';
-        //System.debug('curFieldDescribes is: ' + curFieldDescribes);
-        System.debug('field name is : ' + fieldName);
-        System.debug('fieldValue is: ' + fieldValue);
-        String fieldType;
-        String stringRepresentation;
-       /*  for(Schema.DescribeFieldResult curDFR : curFieldDescribes) {
-            if (curDFR.getName() == fieldName) {
-                System.debug('matched fieldName and dfr for fieldName ' + fieldName);
-                fieldType = curDFR.getType().name();
-            }
-
-        }
-        System.debug('fieldType is: ' + fieldType); */
-        /* switch on (fieldType) {
-            when 'DATE' {
-                //stringRepresentation = fieldValue.value();
-            }
-            when else {
-                stringRepresentation = (String)fieldValue;
-            }
-
-        } */
+        if (fieldValue == null) 
+            return '';   
         return fieldValue.toString();
     }
 
@@ -164,6 +135,7 @@ public with sharing class GetProcessInstanceData {
         }
     }
 
+    //handle menu actions taken by the user
     @AuraEnabled 
     public static String process(String actorId, String action, List<String> workItemIds){
        
