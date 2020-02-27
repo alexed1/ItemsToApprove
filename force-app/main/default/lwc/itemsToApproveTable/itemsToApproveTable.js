@@ -9,15 +9,11 @@ const actions = [
     { label: 'Reassign', name: 'Removed' }
 ];
 
-settings = {
-    reactionConfirm: {label: 'Ok', variant: 'destructive', value: 'yes'},
-    reactionCancel: {label: 'Cancel', variant: 'brand', value: 'no'}
-};
 
 export default class ItemsToApproveTable extends LightningElement {
 
-    //@api rowData;
-   // @api columns;
+    @api rowData;
+    @api columns;
     @api actorId;
     @api mode='single';
     @api contextObjectType;
@@ -27,8 +23,19 @@ export default class ItemsToApproveTable extends LightningElement {
     datatableColumnFieldDescriptorString
     selectedRows;
 
-    connectedCallback () {      
+    settings = {
+        reactionConfirm: {label: 'Ok', variant: 'destructive', value: 'yes'},
+        reactionCancel: {label: 'Cancel', variant: 'brand', value: 'no'},
+        stringDataType: 'String',
+        referenceDataType: 'reference',
+    };
+    
+
+    connectedCallback () {   
+       console.log('entering itemstoapprove');   
        this.getServerData();
+
+    //this.modalAction(true);
 
     }
    
@@ -155,7 +162,16 @@ export default class ItemsToApproveTable extends LightningElement {
         }
     }
 
-
+    modalAction(isOpen) {
+        const existing = this.template.querySelector('c-uc-modal');
+        if (existing) {
+            if (isOpen) {
+                existing.openModal();
+            } else {
+                existing.closeModal();
+            }
+        }
+    }
 
     dispatchValueChangedEvent(value) {
         let returnedValue = value;
