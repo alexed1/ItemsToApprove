@@ -13,11 +13,11 @@ export default class DatatableFlow extends LightningElement {
         const action = event.detail.action;
         const row = event.detail.row;
         //rowactions should be handled by the parent.  
-        this.dispatchChangeEvent(row, action);
+        this.dispatchRowActionEvent(row, action);
 
     }
 
-    dispatchChangeEvent(row, action) {
+    dispatchRowActionEvent(row, action) {
         const rowActionTaken = new CustomEvent('rowactiontaken', {
             bubbles: false, 
             detail: {row, action}
@@ -30,7 +30,17 @@ export default class DatatableFlow extends LightningElement {
         const selectedRows = event.detail.selectedRows;
         // Display that fieldName of the selected rows
         for (let i = 0; i < selectedRows.length; i++){
-            alert("You selected: " + selectedRows[i].opportunityName);
+            console.log("You selected: " + selectedRows[i].RecordName);
         }
+        this.dispatchRowSelectedEvent(selectedRows);
+    }
+
+    dispatchRowSelectedEvent(selectedRows) {
+        //console.log('selectedrows is: ' + JSON.stringify(selectedRows));
+        const rowSelected = new CustomEvent('rowselected', {
+            bubbles: false, 
+            detail: {selectedRows}
+        });
+        this.dispatchEvent(rowSelected);
     }
 }

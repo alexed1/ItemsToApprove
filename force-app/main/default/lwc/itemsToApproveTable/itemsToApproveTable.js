@@ -22,10 +22,11 @@ export default class ItemsToApproveTable extends LightningElement {
     fieldDescribes; //not being used
     datatableColumnFieldDescriptorString
     selectedRows;
+    apCount;
 
     settings = {
-        reactionConfirm: {label: 'Ok', variant: 'destructive', value: 'yes'},
-        reactionCancel: {label: 'Cancel', variant: 'brand', value: 'no'},
+        reactionApprove: {label: 'Approve', variant: 'brand', value: 'Approve'},
+        reactionReject: {label: 'Reject', variant: 'brand', value: 'Reject'},
         stringDataType: 'String',
         referenceDataType: 'reference',
     };
@@ -35,7 +36,7 @@ export default class ItemsToApproveTable extends LightningElement {
        console.log('entering itemstoapprove');   
        this.getServerData();
 
-    //this.modalAction(true);
+       
 
     }
    
@@ -52,9 +53,9 @@ export default class ItemsToApproveTable extends LightningElement {
             this.rowData = this.generateRowData(processInstanceData.rowData);
             })
             .catch(error => {
-                console.log('error is: ' + error);
+                console.log('error is: ' + JSON.stringify(error));
                 this.error = error;
-                return this.error;
+                return this.error; //TODO need to display this error somewhere
             });
     }
 
@@ -77,11 +78,11 @@ export default class ItemsToApproveTable extends LightningElement {
     }
 
     updateSelectedRows(event) {
+        console.log('some rows were selected in the wrapper itemsToApproveTable');
+        console.log(JSON.stringify(event.detail.selectedRows));
         this.selectedRows = event.detail.selectedRows;
-        // Display that fieldName of the selected rows
-        //for (let i = 0; i < selectedRows.length; i++){
-         //   alert("You selected: " + selectedRows[i].opportunityName);
-        //}
+        this.apCount = event.detail.selectedRows.length;
+       
     }
 
     //receive event from child datatable
@@ -89,16 +90,28 @@ export default class ItemsToApproveTable extends LightningElement {
         console.log('entering handleRowAction in itemsToApproveTable.js');
         const action = event.detail.action;
         let row = event.detail.row;
+        this.processApprovalAction(action.name,row);
+    }
+
+    handleModalBatch(action){
+        console.log('entering handleModalBatch action is: ' + action);
+        this.selectedRows.forEach(row => {
+           this.processApprovalAction(action,row);     
+        });
+    }
+
+    processApprovalAction(action, row){
         const workItemIds = [];
+        console.log('entering processApprovalAction: ' + JSON.stringify(row));
         workItemIds.push(row.WorkItemId);
-        process({ actorId: row.ActorId, action : action.name, workItemIds : workItemIds})
+        process({ actorId: row.ActorId, action : action, workItemIds : workItemIds})
             .then(result => {
                 console.log('result from process call is: ' + result);
-                this.showToast('Approval Management', action.name + ' Complete', 'success', true);
+                this.showToast('Approval Management', action + ' Complete', 'success', true);
                 this.getServerData();
             })
             .catch(error => {
-                console.log('error returning from process work item apex call is: ' + error);  
+                console.log('error returning from process work item apex call is: ' + JSON.stringify(error));  
             });  
     }
 
@@ -153,20 +166,35 @@ export default class ItemsToApproveTable extends LightningElement {
     }
 
     get modalReactions() {
-        return [this.settings.reactionConfirm, this.settings.reactionCancel];
+        return [this.settings.reactionApprove, this.settings.reactionReject];
     }
 
     handleModalReactionButtonClick(event) {
-        if (event.detail.value === this.settings.reactionConfirm.value) {
-            this.dispatchValueChangedEvent(this.searchString);
-        }
+        console.log('modal reaction received with value: ' + event.detail.value);
+        /* if (event.detail.value === this.settings.reactionApprove.value) {
+            this.dispatchValueChangedEvent('approve');
+        } else {
+            if (event.detail.value === this.settings.reactionReject.value) {
+                this.dispatchValueChangedEvent('reject');
+            } else console.log('something is wrong');
+        } */
+        this.handleModalBatch(event.detail.value);
+    }
+
+    handleButtonClick(event) {
+        console.log('buttonclicked');
+        this.modalAction(true);
     }
 
     modalAction(isOpen) {
         const existing = this.template.querySelector('c-uc-modal');
+        
         if (existing) {
             if (isOpen) {
-                existing.openModal();
+                console.log('opening modal');
+                //get the selected values
+                let selectedVals = 
+                existing.openModal(this.selectedRows);
             } else {
                 existing.closeModal();
             }

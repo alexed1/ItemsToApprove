@@ -34,7 +34,7 @@
         <name>consoleScreen1</name>
         <label>Display Results Itemsto Approve</label>
         <locationX>387</locationX>
-        <locationY>177</locationY>
+        <locationY>178</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
@@ -46,6 +46,24 @@
                 <name>actorId</name>
                 <value>
                     <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>contextObjectType</name>
+                <value>
+                    <stringValue>Account</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>fieldNames</name>
+                <value>
+                    <stringValue>textfield1__c,datefield1__c</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>mode</name>
+                <value>
+                    <stringValue>Single</stringValue>
                 </value>
             </inputParameters>
             <isRequired>true</isRequired>

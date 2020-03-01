@@ -10,8 +10,10 @@ export default class ucModal extends LightningElement {
 
     @track showModal = false;
 
-    @api openModal() {
+    @api openModal(selectedRows) {
         this.showModal = true;
+        console.log('open modal received selectedRows of: ' + JSON.stringify(selectedRows));
+        
     }
 
     get containerStyle() {
