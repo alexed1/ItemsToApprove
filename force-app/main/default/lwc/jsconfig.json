@@ -14,6 +14,12 @@
             ],
             "c/ucModal": [
                 "ucModal/ucModal.js"
+            ],
+            "c/lookup": [
+                "lookup/lookup.js"
+            ],
+            "c/lookupContainer": [
+                "lookupContainer/lookupContainer.js"
             ]
         }
     },

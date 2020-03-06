@@ -94,21 +94,40 @@ public with sharing class GetProcessInstanceData {
         return JSON.serialize(rowData);
     }
 
+    //if user is in Single mode and has specified fields they want to display, get them
     public static Map<String, String>  getRecordData (Map<String, String> valueMap, String targetObjectId, String fieldNames, String objectTypeName ) {
         valueMap.put('contextRecordURL', getRecordURL(targetObjectId, objectTypeName));
         //get data about the underlying records
-        String myQuery = 'SELECT Name,' +  fieldNames    +' FROM ' + objectTypeName + ' WHERE Id = :targetObjectId';
+
+        String myQuery = 'SELECT ' + AddFieldNames(fieldNames)    +' FROM ' + objectTypeName + ' WHERE Id = :targetObjectId';
         SObject returnedObject = Database.query(myQuery);
         String contextRecordName = (String) returnedObject.get('Name');
         valueMap.put('contextRecordName', contextRecordName);
-
-        for(String field : fieldNames.split(',')) {
-            valueMap.put(field, ToString(returnedObject.get(field), field));
+        System.debug ('in getRecordData. fieldnames is: ' + fieldNames);
+        List<String> curStrings = fieldNames.split(',');
+        System.debug ('in getRecordData. curStrings is: ' + curStrings);
+        for(String curField : curStrings) {
+            System.debug('field is: ' + curField);
+            //field = 'Id';
+            if (curField == 'Id') {
+                System.debug('skipping Id'); 
+            } else {
+                valueMap.put(curField, ToString(returnedObject.get(curField), curField));
+            }
+               
         }
+           
+        
         System.debug('returning valuemap from getRecordData: ' + valueMap);
         return valueMap;
     }
 
+    //make sure Name is used 1ce and 1nc only
+    public static String AddFieldNames(String fieldNames) {
+        if (fieldNames.contains('Name'))
+            return fieldNames;
+            else return 'Name,' + fieldNames;
+    }
 
     public static String ToString (Object fieldValue, String fieldName ) {
         if (fieldValue == null) 
@@ -129,32 +148,45 @@ public with sharing class GetProcessInstanceData {
             when 'DATE' {
                 return 'date';
             }
+            when 'ID' {
+                return 'id';
+            }
             when else {
-                throw new MyApexException ('the field type is: ' + apexType + ' and convertType doesnt have a javascript equivalent ');
+                throw new MyApexException ('you\'ve specified the unsupported field type: ' + apexType );
             }
         }
     }
 
     //handle menu actions taken by the user
     @AuraEnabled 
-    public static String process(String actorId, String action, List<String> workItemIds){
+    public static String process(String reassignActorId, String action, List<String> workItemIds, String comment){
        
-        System.debug('passed in actorId is: ' + actorId);
+        System.debug('passed in actorId is: ' + reassignActorId);
         System.debug('passed in action is: ' + action);
 
 
         List<Approval.ProcessWorkItemRequest> listProcWrkItmReq = new List<Approval.ProcessWorkItemRequest>();
         for ( String curWorkItemId :workItemIds) 
-        {
+        {   
+            if(action == 'Reassign') {
+                System.debug('beginning reassignment');
+                ProcessInstanceWorkItem pi = [SELECT Id, ActorId FROM ProcessInstanceWorkItem WHERE Id = :curWorkItemId];
+                System.debug ('workitem is: ' + pi);
+                pi.ActorId = reassignActorId;
+                update pi;
+            } else {
+                // action is approve or reject
                 System.debug('entering loop in getWorkItem');
                 Approval.ProcessWorkItemRequest pwr = new Approval.ProcessWorkItemRequest();
-                pwr.SetComments('Automatic Transition: ' + action);
+                if (!String.isBlank(comment)) pwr.SetComments(comment);
                 pwr.setWorkItemId(curWorkItemId);
                 pwr.setAction(action);  // Application will show Process Status as "Recalled"
                 //listProcWrkItmReq.add(pwr);
                 System.debug('pwr is: ' + pwr);
                 Approval.ProcessResult pr = Approval.process(pwr);
-                //System.debug('Approved ProcessInstance ID :' + curWorkItem.ProcessInstanceId );
+                //System.debug('Approved ProcessInstance ID :' + curWorkItem.ProcessInstanceId )
+            }
+                
         }
         return 'foo';    
     }

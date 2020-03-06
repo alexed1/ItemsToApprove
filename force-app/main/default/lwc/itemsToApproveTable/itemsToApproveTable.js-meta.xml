@@ -9,7 +9,6 @@
     <targetConfigs>
         <targetConfig targets="lightning__FlowScreen" >
             <property name="actorId" type="String"  /> 
-            <property name="mode" type="String"  /> 
             <property name="contextObjectType" type="String"  /> 
             <property name="fieldNames" type="String"  /> 
         </targetConfig>

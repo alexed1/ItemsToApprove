@@ -1,6 +1,16 @@
 <template>
-    <h1>Items to Approve</h1>
-    <lightning-button label="Manage" title="Non-primary action" onclick={handleButtonClick} class="slds-m-left_x-small"></lightning-button>
+
+    <template if:true={errorApex}>
+        <div class="slds-m-around_medium slds-text-color_error">
+            {errorApex} <br> 
+         </div>
+    </template> 
+    <template if:true={errorJavascript}>
+        <div class="slds-m-around_medium slds-text-color_error">
+            {errorJavascript} <br> 
+         </div>
+    </template> 
+    <lightning-button label="Manage" title="Non-primary action" onclick={handleButtonClick} class="slds-m-left_large"></lightning-button>
 
     <c-datatable-flow columns={columns} mydata={rowData} onrowactiontaken={handleRowAction} onrowselected={updateSelectedRows}>
     </c-datatable-flow>
@@ -15,7 +25,26 @@
         <span slot="modalBody">
             Manage your processes
             Selected Approval Processes: {apCount}
-            <lightning-textarea name="comment" label="Comments" ></lightning-textarea>
-        </span>
+            <template if:true={actionReassign}>
+                <div >
+                    <c-lookup-container></c-lookup-container>
+                       
+                  
+                 </div>
+            </template> 
+            <template if:false={actionReassign}>
+                <div >
+                    <lightning-textarea name="comment" label="Comments" value={commentVal} onchange={handleComment}></lightning-textarea>
+                 </div>
+            </template> 
+            </span>
     </c-uc-modal> 
 </template>
+
+ <!-- selection={initialSelection}
+                        errors={errors}
+                        onsearch={handleSearch}
+                        onselectionchange={handleSelectionChange}
+                        label="Select User"
+                        placeholder=""
+                        is-multi-entry=false> -->

@@ -6,7 +6,7 @@ import getProcessItemData from '@salesforce/apex/GetProcessInstanceData.getProce
 const actions = [
     { label: 'Approve', name: 'Approve' },
     { label: 'Reject', name: 'Reject' },
-    { label: 'Reassign', name: 'Removed' }
+    { label: 'Reassign', name: 'Reassign' }
 ];
 
 
@@ -15,14 +15,17 @@ export default class ItemsToApproveTable extends LightningElement {
     @api rowData;
     @api columns;
     @api actorId;
-    @api mode='single';
     @api contextObjectType;
     @api fieldNames; //field names provided by called to be rendered as columns
-    error;
+    errorApex;
+    errorJavascript;
     fieldDescribes; //not being used
     datatableColumnFieldDescriptorString
     selectedRows;
     apCount;
+    commentVal = '';
+    reassignActorId;
+    actionReassign = false;
 
     settings = {
         reactionApprove: {label: 'Approve', variant: 'brand', value: 'Approve'},
@@ -31,13 +34,20 @@ export default class ItemsToApproveTable extends LightningElement {
         referenceDataType: 'reference',
     };
     
+    get mode() {
+        console.log('getting mode');
+        if (this.contextObjectType && this.fieldNames)
+            return 'single'; //display items to approve for a single type of object, enabling additional fields to be displayed
+        else if ((this.contextObjectType && !this.fieldNames) || (!this.contextObjectType && this.fieldNames)) {
+            console.log('made it to the error throw');
+            this.errorJavascript = 'Flow Configuration error: You have either specified a contextObjectType without specifying the additional fields you want displayed, or you have specified fields without providing the name of an object type.';
+            }
+             else return 'mixed';
+        }
 
     connectedCallback () {   
        console.log('entering itemstoapprove');   
        this.getServerData();
-
-       
-
     }
    
     //call apex and get back an object containing both row and column information
@@ -46,7 +56,7 @@ export default class ItemsToApproveTable extends LightningElement {
     getServerData() { 
         getProcessItemData({ actorId: this.actorId, objectName: this.contextObjectType, fieldNames : this.fieldNames, mode : this.mode})
         .then(result => {
-            console.log('getProcessItemData returns: ' + result);
+            //console.log('getProcessItemData returns: ' + result);
             let processInstanceData = JSON.parse(result);
             this.datatableColumnFieldDescriptorString = processInstanceData.datatableColumnFieldDescriptorString;
             this.createColumns();
@@ -54,8 +64,8 @@ export default class ItemsToApproveTable extends LightningElement {
             })
             .catch(error => {
                 console.log('error is: ' + JSON.stringify(error));
-                this.error = error;
-                return this.error; //TODO need to display this error somewhere
+                this.errorApex = 'Apex Action error: ' + error.body.message;
+                return this.errorApex;  
             });
     }
 
@@ -90,13 +100,20 @@ export default class ItemsToApproveTable extends LightningElement {
         console.log('entering handleRowAction in itemsToApproveTable.js');
         const action = event.detail.action;
         let row = event.detail.row;
-        this.processApprovalAction(action.name,row);
+        if(action == 'Approve' || action == 'Reject') {
+            this.processApprovalAction(action.name,row);
+        } else {
+            //reassignment
+            this.actionReassign = true;
+            this.modalAction(true);
+        }
+        
     }
 
     handleModalBatch(action){
         console.log('entering handleModalBatch action is: ' + action);
         this.selectedRows.forEach(row => {
-           this.processApprovalAction(action,row);     
+           this.processApprovalAction(action,row);      //this should be batched up for more efficiency
         });
     }
 
@@ -104,7 +121,8 @@ export default class ItemsToApproveTable extends LightningElement {
         const workItemIds = [];
         console.log('entering processApprovalAction: ' + JSON.stringify(row));
         workItemIds.push(row.WorkItemId);
-        process({ actorId: row.ActorId, action : action, workItemIds : workItemIds})
+        console.log('commentval is: ' + this.commentVal);
+        process({ actorId: this.reassignActorId, action : action, workItemIds : workItemIds, comment : this.commentVal})
             .then(result => {
                 console.log('result from process call is: ' + result);
                 this.showToast('Approval Management', action + ' Complete', 'success', true);
@@ -148,7 +166,7 @@ export default class ItemsToApproveTable extends LightningElement {
     generateRowData(rowData) {
         var outputData = '';
         var inputData = JSON.parse(rowData);
-        console.log('input data is: ' + rowData);
+        //console.log('input data is: ' + rowData);
         inputData.forEach(element => {
            
             outputData = outputData + '{"Submitter" : "' + element.createdByName +'", "WorkItemId" : "' + element.workItemId + '", "ActorId" : "' + element.actorId + '", "TargetObjectId" : "' +  element.targetObjectId + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '", "RecordURL" : "' + element.contextRecordURL + '",'; 
@@ -185,6 +203,10 @@ export default class ItemsToApproveTable extends LightningElement {
         console.log('buttonclicked');
         this.modalAction(true);
     }
+    handleComment(event){
+        console.log('comment made');
+        this.commentVal = event.detail.value;
+    }
 
     modalAction(isOpen) {
         const existing = this.template.querySelector('c-uc-modal');
@@ -193,7 +215,7 @@ export default class ItemsToApproveTable extends LightningElement {
             if (isOpen) {
                 console.log('opening modal');
                 //get the selected values
-                let selectedVals = 
+                //let selectedVals = 
                 existing.openModal(this.selectedRows);
             } else {
                 existing.closeModal();
