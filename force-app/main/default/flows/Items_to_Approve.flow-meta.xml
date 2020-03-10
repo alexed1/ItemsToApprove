@@ -1,20 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <actionCalls>
-        <name>Delete_Approval_Process</name>
-        <label>Delete Approval Process</label>
-        <locationX>232</locationX>
-        <locationY>31</locationY>
-        <actionName>DeleteApprovalProcess</actionName>
-        <actionType>apex</actionType>
-        <inputParameters>
-            <name>name</name>
-            <value>
-                <stringValue>Account.ap1</stringValue>
-            </value>
-        </inputParameters>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
     <interviewLabel>Items to Approve {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Items to Approve</label>
     <processMetadataValues>
@@ -32,14 +17,14 @@
     <processType>Flow</processType>
     <screens>
         <name>consoleScreen1</name>
-        <label>Display Results Itemsto Approve</label>
-        <locationX>387</locationX>
+        <label>Display ItemstoApprove</label>
+        <locationX>386</locationX>
         <locationY>178</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
         <fields>
-            <name>items</name>
+            <name>items1</name>
             <extensionName>c:itemsToApproveTable</extensionName>
             <fieldType>ComponentInstance</fieldType>
             <inputParameters>
@@ -57,55 +42,12 @@
             <inputParameters>
                 <name>fieldNames</name>
                 <value>
-                    <stringValue>textfield1__c,datefield1__c</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>mode</name>
-                <value>
-                    <stringValue>Single</stringValue>
+                    <stringValue>textfield1__c,datefield1__c,Name,Id</stringValue>
                 </value>
             </inputParameters>
             <isRequired>true</isRequired>
-            <storeOutputAutomatically>true</storeOutputAutomatically>
         </fields>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
-    </screens>
-    <screens>
-        <name>consoleScreen1_0</name>
-        <label>Display Results</label>
-        <locationX>385</locationX>
-        <locationY>357</locationY>
-        <allowBack>true</allowBack>
-        <allowFinish>true</allowFinish>
-        <allowPause>true</allowPause>
-        <fields>
-            <name>datatable</name>
-            <extensionName>c:datatableFlow</extensionName>
-            <fieldType>ComponentInstance</fieldType>
-            <inputParameters>
-                <name>columns</name>
-                <value>
-                    <stringValue>foo</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>keyfield</name>
-                <value>
-                    <stringValue>bar</stringValue>
-                </value>
-            </inputParameters>
-            <inputParameters>
-                <name>mydata</name>
-                <value>
-                    <stringValue>baz</stringValue>
-                </value>
-            </inputParameters>
-            <isRequired>true</isRequired>
-            <storeOutputAutomatically>true</storeOutputAutomatically>
-        </fields>
-        <showFooter>true</showFooter>
+        <showFooter>false</showFooter>
         <showHeader>true</showHeader>
     </screens>
     <start>
@@ -115,7 +57,7 @@
             <targetReference>consoleScreen1</targetReference>
         </connector>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <variables>
         <name>recordId</name>
         <dataType>String</dataType>
