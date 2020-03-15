@@ -5,8 +5,8 @@ export default class DatatableFlow extends LightningElement {
     @api mydata;
     @api columns;
     @api keyfield;
-    @api recordData
-    @api columnNamesCSV
+    @api recordData;
+    @api columnNamesCSV;
 
 
     handleRowAction(event){

@@ -1,23 +1,14 @@
 import { LightningElement, track, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-/** SampleLookupController.search() Apex method */
-import apexSearch from '@salesforce/apex/SampleLookupController.search';
+import apexSearch from '@salesforce/apex/UserLookupController.search';
 
 export default class LookupContainer extends LightningElement {
     // Use alerts instead of toast to notify user
     @api notifyViaAlerts = false;
 
     @track isMultiEntry = false;
-    @track initialSelection = [
-        {
-            id: 'na',
-            sObjectType: 'na',
-            icon: 'standard:lightning_component',
-            title: 'Inital selection',
-            subtitle: 'Not a valid record'
-        }
-    ];
+    @track initialSelection = [];
     @track errors = [];
 
     handleLookupTypeChange(event) {
@@ -45,16 +36,21 @@ export default class LookupContainer extends LightningElement {
             });
     }
 
-    handleSelectionChange() {
+    handleSelectionChange(event) {
+        this.dispatchEvent(new CustomEvent('selectionchange', {
+            detail: {
+                value: event.detail.value
+            }
+        }));
         this.errors = [];
     }
 
-    handleSubmit() {
-        this.checkForErrors();
-        if (this.errors.length === 0) {
-            this.notifyUser('Success', 'The form was submitted.', 'success');
-        }
-    }
+    // handleSubmit() {
+    //     this.checkForErrors();
+    //     if (this.errors.length === 0) {
+    //         this.notifyUser('Success', 'The form was submitted.', 'success');
+    //     }
+    // }
 
     checkForErrors() {
         const selection = this.template

@@ -145,7 +145,11 @@ export default class Lookup extends LightningElement {
         this.searchResults = [];
 
         // Notify parent components that selection has changed
-        this.dispatchEvent(new CustomEvent('selectionchange'));
+        this.dispatchEvent(new CustomEvent('selectionchange', {
+            detail: {
+                value: recordId
+            }
+        }));
     }
 
     handleComboboxClick() {
@@ -256,9 +260,7 @@ export default class Lookup extends LightningElement {
     }
 
     get getSelectIconName() {
-        return this.hasSelection()
-            ? this.selection[0].icon
-            : 'standard:default';
+        return this.hasSelection() ? this.selection[0].icon : 'standard:default';
     }
 
     get getSelectIconClass() {

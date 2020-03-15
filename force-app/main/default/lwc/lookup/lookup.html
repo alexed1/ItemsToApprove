@@ -14,13 +14,12 @@
                     <!-- Search input start -->
                     <div class={getComboboxClass} role="none">
                         <template if:false={isMultiEntry}>
-                            <lightning-icon
-                                icon-name={getSelectIconName}
-                                size="small"
-                                alternative-text="Selected item icon"
-                                class={getSelectIconClass}
-                            >
-                            </lightning-icon>
+                            <template if:true={hasSelection}>
+                                <div style="max-width: 10%;"
+                                     class="slds-p-right--xx-small">
+                                    <img style="border-radius: 50%; max-height: 30px;" src={getSelectIconName} class={getSelectIconClass}/>
+                                </div>
+                            </template>
                         </template>
 
                         <!-- Text input -->
@@ -101,11 +100,10 @@
                                         data-recordid={result.id}
                                     >
                                         <span class="slds-media__figure">
-                                            <lightning-icon
-                                                icon-name={result.icon}
-                                                size="small"
-                                                alternative-text="Result item icon"
-                                            ></lightning-icon>
+                                             <img style="border-radius: 50%; max-height: 30px;"
+                                                  alt={result.title}
+                                                  src={result.icon}
+                                                  title={result.title}/>
                                         </span>
                                         <span class="slds-media__body">
                                             <span
@@ -166,9 +164,10 @@
                                     onremove={handleRemoveSelectedItem}
                                     name={item.id}
                                 >
-                                    <lightning-icon
-                                        icon-name={item.icon}
-                                    ></lightning-icon>
+                                    <img style="border-radius: 50%; max-height: 30px;"
+                                         alt={item.title}
+                                         src={item.icon}
+                                         title={item.title}/>
                                 </lightning-pill>
                             </li>
                         </template>
