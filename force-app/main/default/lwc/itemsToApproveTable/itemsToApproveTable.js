@@ -1,136 +1,201 @@
 /* eslint-disable no-console */
-import { LightningElement, api,track} from 'lwc';
+import {LightningElement, api, track} from 'lwc';
 import process from '@salesforce/apex/GetProcessInstanceData.process';
 import getProcessItemData from '@salesforce/apex/GetProcessInstanceData.getProcessItemData';
 
-const actions = [
-    { label: 'Approve', name: 'Approve' },
-    { label: 'Reject', name: 'Reject' },
-    { label: 'Reassign', name: 'Reassign' }
-];
-
-
 export default class ItemsToApproveTable extends LightningElement {
 
-    @api rowData;
-    @api columns;
     @api actorId;
     @api contextObjectType;
     @api fieldNames; //field names provided by called to be rendered as columns
+    @api disableReassignment;
+    rowData;
+    columns;
+    fieldDescribes;
+    settings = {
+        reactionOk: {label: 'Ok', variant: 'brand', value: 'Ok'},
+        actionApprove: 'Approve',
+        actionReject: 'Reject',
+        actionReassign: 'Reassign',
+        stringDataType: 'String',
+        referenceDataType: 'reference',
+        singleMode: 'single',
+        mixedMode: 'mixed',
+        fieldNameSubmitter: '__Submitter',
+        fieldNameSubmitterURL: '__SubmitterURL',
+        fieldNameLastActor: '__LastActor',
+        fieldNameLastActorURL: '__LastActorURL',
+        fieldNameType: '__Type',
+        fieldNameRecordName: '__Name',
+        fieldNameRecordURL: '__RecordURL',
+        fieldNameRecentApproverURL: '__RecentApproverUrl',
+        defaultDateAttributes: {weekday: "long", year: "numeric", month: "long", day: "2-digit"},
+        defaultDateTimeAttributes: {year: "numeric", month: "long", day: "2-digit", hour: "2-digit", minute: "2-digit"}
+    };
+
+    mandatoryColumnDescriptors = [
+        {
+            label: "Record Name",
+            fieldName: this.settings.fieldNameRecordURL,
+            type: "url",
+            typeAttributes: {label: {fieldName: this.settings.fieldNameRecordName}, target: "_blank"}
+        },
+        {label: "Type", fieldName: this.settings.fieldNameType, type: "text"},
+        {
+            label: "Date Submitted",
+            fieldName: 'dateSubmitted',
+            type: "date",
+            typeAttributes: this.settings.defaultDateTimeAttributes
+        },
+        {
+            label: "Submitter",
+            fieldName: this.settings.fieldNameSubmitterURL,
+            type: "url",
+            typeAttributes: {label: {fieldName: this.settings.fieldNameSubmitter}, target: "_blank"}
+        },
+        {
+            label: "Recent Approver",
+            fieldName: this.settings.fieldNameLastActorURL,
+            type: "url",
+            typeAttributes: {label: {fieldName: this.settings.fieldNameLastActor}, target: "_blank"}
+        }
+    ];
+
+    apActions = [
+        {label: this.settings.actionApprove, value: this.settings.actionApprove, name: this.settings.actionApprove},
+        {label: this.settings.actionReject, value: this.settings.actionReject, name: this.settings.actionReject},
+        {label: this.settings.actionReassign, value: this.settings.actionReassign, name: this.settings.actionReassign}
+    ];
+    currentAction = this.settings.actionApprove;
     errorApex;
     errorJavascript;
-    fieldDescribes; //not being used
-    datatableColumnFieldDescriptorString
     selectedRows;
     apCount;
     commentVal = '';
     reassignActorId;
-    actionReassign = false;
 
-    settings = {
-        reactionApprove: {label: 'Approve', variant: 'brand', value: 'Approve'},
-        reactionReject: {label: 'Reject', variant: 'brand', value: 'Reject'},
-        stringDataType: 'String',
-        referenceDataType: 'reference',
-    };
-    
-    get mode() {
-        console.log('getting mode');
-        if (this.contextObjectType && this.fieldNames)
-            return 'single'; //display items to approve for a single type of object, enabling additional fields to be displayed
-        else if ((this.contextObjectType && !this.fieldNames) || (!this.contextObjectType && this.fieldNames)) {
-            console.log('made it to the error throw');
-            this.errorJavascript = 'Flow Configuration error: You have either specified a contextObjectType without specifying the additional fields you want displayed, or you have specified fields without providing the name of an object type.';
-            }
-             else return 'mixed';
-        }
-
-    connectedCallback () {   
-       console.log('entering itemstoapprove');   
-       this.getServerData();
+    connectedCallback() {
+        this.getServerData();
     }
-   
-    //call apex and get back an object containing both row and column information
-    //column information is only fetched when Mode is Single, which means that the table will be limited to a single record and can therefore show columns of fields from that record (passed in as fieldNames)
-    //row data is a mix of metadata from the approval process, the submitter, and the context record
-    getServerData() { 
-        getProcessItemData({ actorId: this.actorId, objectName: this.contextObjectType, fieldNames : this.fieldNames, mode : this.mode})
-        .then(result => {
-            //console.log('getProcessItemData returns: ' + result);
-            let processInstanceData = JSON.parse(result);
-            this.datatableColumnFieldDescriptorString = processInstanceData.datatableColumnFieldDescriptorString;
+
+    getServerData() {
+        getProcessItemData({
+            actorId: this.actorId,
+            objectName: this.contextObjectType,
+            fieldNames: this.fieldNames,
+            mode: this.mode
+        }).then(result => {
+            let processData = JSON.parse(result);
+            this.fieldDescribes = processData.fieldDescribes;
             this.createColumns();
-            this.rowData = this.generateRowData(processInstanceData.rowData);
-            })
-            .catch(error => {
-                console.log('error is: ' + JSON.stringify(error));
-                this.errorApex = 'Apex Action error: ' + error.body.message;
-                return this.errorApex;  
-            });
-    }
-
-
-    createColumns() {
-        var fullColumns = '';
-        if (this.mode.toLowerCase() === 'single') {
-            fullColumns = this.createCustomColumns() + this.datatableColumnFieldDescriptorString +  this.addRowActionMenu() + ']';
-            console.log('columns set to ' + fullColumns);
-            this.columns = JSON.parse(fullColumns);
-        } else if (this.mode.toLowerCase() === 'mixed')  {
-                fullColumns = this.createStandardColumns();
-                console.log('columns set to ' + fullColumns);
-                this.columns = JSON.parse(fullColumns);
-        } else  {
-            console.log('in error case');
-            //this doesn't work:
-            throw new Error('Unsupported value provided for Mode. Use Mixed or Single');
-        }    
-    }
-
-    updateSelectedRows(event) {
-        console.log('some rows were selected in the wrapper itemsToApproveTable');
-        console.log(JSON.stringify(event.detail.selectedRows));
-        this.selectedRows = event.detail.selectedRows;
-        this.apCount = event.detail.selectedRows.length;
-       
-    }
-
-    //receive event from child datatable
-    handleRowAction(event){
-        console.log('entering handleRowAction in itemsToApproveTable.js');
-        const action = event.detail.action;
-        let row = event.detail.row;
-        if(action == 'Approve' || action == 'Reject') {
-            this.processApprovalAction(action.name,row);
-        } else {
-            //reassignment
-            this.actionReassign = true;
-            this.modalAction(true);
-        }
-        
-    }
-
-    handleModalBatch(action){
-        console.log('entering handleModalBatch action is: ' + action);
-        this.selectedRows.forEach(row => {
-           this.processApprovalAction(action,row);      //this should be batched up for more efficiency
+            this.rowData = this.generateRowData(processData.processInstanceData);
+        }).catch(error => {
+            console.log('error is: ' + JSON.stringify(error));
         });
     }
 
-    processApprovalAction(action, row){
-        const workItemIds = [];
-        console.log('entering processApprovalAction: ' + JSON.stringify(row));
-        workItemIds.push(row.WorkItemId);
-        console.log('commentval is: ' + this.commentVal);
-        process({ actorId: this.reassignActorId, action : action, workItemIds : workItemIds, comment : this.commentVal})
-            .then(result => {
-                console.log('result from process call is: ' + result);
-                this.showToast('Approval Management', action + ' Complete', 'success', true);
-                this.getServerData();
+    createColumns() {
+        this.columns = [...this.mandatoryColumnDescriptors.filter(curDescriptor => {
+            return this.mode !== this.settings.singleMode || !(this.mode === this.settings.singleMode && curDescriptor.fieldName === this.settings.fieldNameType)
+        }), ...this.getCustomFieldColumns(), this.getActionMenuItems()];
+    }
+
+    getCustomFieldColumns() {
+        let resultFields = [];
+        if (this.fieldNames) {
+            this.fieldNames.replace(/\s+/g, '').split(',').forEach(curFieldName => {
+                let fieldDescribe = this.getFieldDescribe(this.contextObjectType, curFieldName);
+                if (fieldDescribe) {
+                    resultFields.push({
+                            ...{
+                                label: fieldDescribe.label,
+                                fieldName: curFieldName
+                            }, ...this.getDefaultTypeAttributes(fieldDescribe.type)
+                        }
+                    );
+                }
+            });
+        }
+        return resultFields;
+    }
+
+    getDefaultTypeAttributes(type) {
+        if (type.includes('date')) {
+            return {
+                type: "date",
+                typeAttributes: this.settings.defaultDateTimeAttributes
+            };
+        } else {
+            return {type: 'text'};
+        }
+    }
+
+    getFieldDescribe(objectName, fieldName) {
+        if (this.fieldDescribes && this.fieldDescribes[objectName]) {
+            let fieldDescribe = this.fieldDescribes[objectName].find(curFieldDescribe => curFieldDescribe.name.toLowerCase() === fieldName.toLowerCase());
+            return fieldDescribe;
+        }
+    }
+
+    get actionReassign() {
+        return this.currentAction === this.settings.actionReassign;
+    }
+
+    get allowedActions() {
+        if (this.apActions && this.apActions.length) {
+            if (this.disableReassignment) {
+                return this.apActions.filter(curAction => curAction.value != this.settings.actionReassign);
+            } else {
+                return this.apActions;
+            }
+        }
+        return [];
+    }
+
+    get mode() {
+        if (this.contextObjectType && this.fieldNames)
+            return this.settings.singleMode; //display items to approve for a single type of object, enabling additional fields to be displayed
+        else if (!this.contextObjectType && this.fieldNames) {
+            this.errorJavascript = 'Flow Configuration error: You have specified fields without providing the name of an object type.';
+        } else {
+            return this.settings.mixedMode;
+        }
+    }
+
+    updateSelectedRows(event) {
+        this.selectedRows = event.detail.selectedRows;
+        this.apCount = event.detail.selectedRows.length;
+    }
+
+    handleRowAction(event) {
+        this.currentAction = event.detail.action.value;
+        if (this.currentAction === this.settings.actionApprove || this.currentAction === this.settings.actionReject) {
+            this.processApprovalAction(event.detail.row);
+        } else {
+            this.modalAction(true);
+        }
+    }
+
+    handleModalBatch() {
+        this.processApprovalAction();
+    }
+
+    processApprovalAction(curRow) {
+        if ((curRow || (this.selectedRows && this.selectedRows.length)) && this.currentAction) {
+            process({
+                reassignActorId: this.reassignActorId,
+                action: this.currentAction,
+                workItemIds: curRow ? [curRow.WorkItemId] : this.selectedRows.map(curRow => curRow.WorkItemId),
+                comment: this.commentVal
             })
-            .catch(error => {
-                console.log('error returning from process work item apex call is: ' + JSON.stringify(error));  
-            });  
+                .then(result => {
+                    this.showToast('Approval Management', this.currentAction + ' Complete', 'success', true);
+                    this.getServerData();
+                })
+                .catch(error => {
+                    console.log('error returning from process work item apex call is: ' + JSON.stringify(error));
+                });
+        }
     }
 
     showToast(title, message, variant, autoClose) {
@@ -141,81 +206,66 @@ export default class ItemsToApproveTable extends LightningElement {
         });
     }
 
-    createStandardColumns() {
-        var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
-        columnDescriptor = columnDescriptor + ',{"label": "Type", "fieldName": "Type", "type": "text"}';
-        columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  }';
-        columnDescriptor = columnDescriptor + this.addRowActionMenu();
-        columnDescriptor = '[' + columnDescriptor + ']';
-        console.log('total standard columnDescriptor is:  ' + columnDescriptor);
-        return columnDescriptor;
+    getActionMenuItems() {
+        return {
+            type: "action",
+            typeAttributes: {rowActions: this.allowedActions, menuAlignment: "left"}
+        };
     }
 
-    addRowActionMenu() {
-        return  ',{"type": "action", "typeAttributes": { "rowActions" : ' + JSON.stringify(actions) + ', "menuAlignment" : "left" }}';
+    getRecordURL(sObject) {
+        return '/lightning/r/' + sObject.attributes.type + '/' + sObject.Id + '/view';
     }
 
-    createCustomColumns() {
-        var columnDescriptor = '{"label": "Submitter", "fieldName": "Submitter", "type": "text"}';
-        columnDescriptor = columnDescriptor + ',{"label": "Record Name", "fieldName": "RecordURL", "type": "url", "typeAttributes": { "label": { "fieldName": "RecordName"}, "target": "_blank" }  }';
-        columnDescriptor = '[' + columnDescriptor ;
-        return columnDescriptor;
-        //given an object and a field name, find the type and label and return a valid string structure
+    getObjectUrl(objectTypeName, recordId) {
+        return '/lightning/r/' + objectTypeName + '/' + recordId + '/view';
     }
 
     generateRowData(rowData) {
-        var outputData = '';
-        var inputData = JSON.parse(rowData);
-        //console.log('input data is: ' + rowData);
-        inputData.forEach(element => {
-           
-            outputData = outputData + '{"Submitter" : "' + element.createdByName +'", "WorkItemId" : "' + element.workItemId + '", "ActorId" : "' + element.actorId + '", "TargetObjectId" : "' +  element.targetObjectId + '", "Type" : "' + element.contextRecordObjectType + '", "RecordName" : "' + element.contextRecordName + '", "RecordURL" : "' + element.contextRecordURL + '",'; 
-            //values for custom fields have been retrned in the rowdata and here are put into the format expected by datatable
-            this.fieldNames.split(',').forEach(fieldName => {
-                outputData = outputData + ' "' + fieldName + '" : "' + element[fieldName] + '",';
-            })            
-            
-            outputData = outputData.slice(0,-1) + '},';
-        
+        return rowData.map(curRow => {
+            let resultData = {
+                ...{
+                    WorkItemId: curRow.workItem.Id,
+                    ActorId: curRow.workItem.ActorId,
+                    TargetObjectId: curRow.sObj.Id,
+                    dateSubmitted: curRow.processInstance.CreatedDate
+                }, ...curRow.sObj
+            };
+            resultData[this.settings.fieldNameSubmitter] = curRow.createdByUser.Name;
+            resultData[this.settings.fieldNameSubmitterURL] = this.getObjectUrl('User', curRow.createdByUser.Id);
+            if (curRow.lastActorUser) {
+                resultData[this.settings.fieldNameLastActor] = curRow.lastActorUser.Name;
+                resultData[this.settings.fieldNameLastActorURL] = this.getObjectUrl('User', curRow.lastActorUser.Id);
+            }
+            resultData[this.settings.fieldNameType] = curRow.sObj.attributes.type;
+            resultData[this.settings.fieldNameRecordName] = curRow.sObj[curRow.nameField];
+            resultData[this.settings.fieldNameRecordURL] = this.getRecordURL(curRow.sObj);
+            return resultData;
         });
-        outputData = '[' +  outputData.slice(0,-1) + ']';
-        console.log('outputData is: ' + outputData);
-        return JSON.parse(outputData);
     }
 
     get modalReactions() {
-        return [this.settings.reactionApprove, this.settings.reactionReject];
+        return [this.settings.reactionOk];
     }
 
     handleModalReactionButtonClick(event) {
-        console.log('modal reaction received with value: ' + event.detail.value);
-        /* if (event.detail.value === this.settings.reactionApprove.value) {
-            this.dispatchValueChangedEvent('approve');
-        } else {
-            if (event.detail.value === this.settings.reactionReject.value) {
-                this.dispatchValueChangedEvent('reject');
-            } else console.log('something is wrong');
-        } */
-        this.handleModalBatch(event.detail.value);
+        this.handleModalBatch();
     }
 
     handleButtonClick(event) {
-        console.log('buttonclicked');
+        this.currentAction = this.settings.actionApprove;
         this.modalAction(true);
     }
-    handleComment(event){
-        console.log('comment made');
+
+    handleComment(event) {
         this.commentVal = event.detail.value;
     }
 
     modalAction(isOpen) {
         const existing = this.template.querySelector('c-uc-modal');
-        
+
         if (existing) {
             if (isOpen) {
-                console.log('opening modal');
-                //get the selected values
-                //let selectedVals = 
                 existing.openModal(this.selectedRows);
             } else {
                 existing.closeModal();
@@ -223,24 +273,15 @@ export default class ItemsToApproveTable extends LightningElement {
         }
     }
 
-    dispatchValueChangedEvent(value) {
-        let returnedValue = value;
-        let valueType = this.settings.stringDataType;
-        if (!returnedValue) {
-            returnedValue = this.singleSelect ? (this.existingMembers.length ? this.existingMembers[0] : null) : this.existingMembers;
-            valueType = this.settings.referenceDataType;
-        }
-
-        const valueChangedEvent = new CustomEvent('valuechanged', {
-            detail: {
-                id: this.name,
-                newValue: returnedValue,
-                newValueType: valueType,
-                newValueObjectType: this.selectedType
-            }
-        });
-        this.dispatchEvent(valueChangedEvent);
+    handleSelectionChange(event) {
+        this.reassignActorId = event.detail.value;
     }
 
+    handleActionChange(event) {
+        this.currentAction = event.detail.value;
+    }
 
+    get isManageDisabled() {
+        return (!this.selectedRows || this.selectedRows.length === 0);
+    }
 }

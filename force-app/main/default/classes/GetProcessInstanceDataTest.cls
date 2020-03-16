@@ -82,13 +82,13 @@ public with sharing class GetProcessInstanceDataTest {
 
     public static void CanRetrieveProcessInstanceWorkItems () {
 
-        String actorId = 'actorId';
-       
-
-        String testResponseList = GetProcessInstanceData.Retrieve(actorId);
-	    
-        System.assertEquals(testResponseList,'foo');
-         
+//        String actorId = 'actorId';
+//
+//
+//        String testResponseList = GetProcessInstanceData.Retrieve(actorId);
+//
+//        System.assertEquals(testResponseList,'foo');
+//
 
     }
 
