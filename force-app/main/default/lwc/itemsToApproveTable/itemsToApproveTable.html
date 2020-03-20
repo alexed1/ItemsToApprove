@@ -44,18 +44,16 @@
                                    required
                                    type="button"></lightning-radio-group>
             <template if:true={actionReassign}>
-                <div class="slds-p-bottom--xx-large">
+                <div class="slds-p-bottom--x-small">
                    <c-lookup-container
                            onselectionchange={handleSelectionChange}
                    ></c-lookup-container>
                  </div>
-            </template> 
-            <template if:false={actionReassign}>
+            </template>
                 <div>
                     <lightning-textarea name="comment" label="Comments" value={commentVal}
                                         onchange={handleComment}></lightning-textarea>
                  </div>
-            </template>
             </span>
     </c-uc-modal>
 </template>

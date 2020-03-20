@@ -92,13 +92,14 @@ public with sharing class GetProcessInstanceData {
     public static ProcessData getRowData(String actorId, String fieldNames, String objectTypeName, String mode) {
         List<ProcessInstanceData> results = new List<ProcessInstanceData>();
         Set<Id> actors = getRelatedActors(actorId);
-        List<ProcessInstanceWorkitem> curWorkItems = [SELECT Id, ActorId, ProcessInstanceId FROM ProcessInstanceWorkitem WHERE ActorId IN :actors];
+        List<ProcessInstanceWorkitem> curWorkItems = [SELECT Id, ActorId, ProcessInstanceId, OriginalActorId, CreatedById FROM ProcessInstanceWorkitem WHERE ActorId IN :actors];
         Map<String, SObject> workItemsToProcessInstanceMap = getSObjectMap(curWorkItems, 'ProcessInstanceId');
         Map<Id, ProcessInstance> processInstanceMap = new Map<Id, ProcessInstance>([SELECT Id, ProcessDefinitionId, TargetObjectId, LastActorId, CreatedById, CreatedDate FROM ProcessInstance WHERE Id IN :workItemsToProcessInstanceMap.keySet()]);
         Set<String> targetObjectIds = getSObjectSet(processInstanceMap.values(), 'TargetObjectId');
         Set<String> processDefinitionIds = getSObjectSet(processInstanceMap.values(), 'ProcessDefinitionId');
         Set<String> createdByIds = getSObjectSet(processInstanceMap.values(), 'CreatedById');
         createdByIds.addAll(getSObjectSet(processInstanceMap.values(), 'LastActorId'));
+        createdByIds.addAll(getSObjectSet(curWorkItems, 'CreatedById'));
         Map<Id, ProcessDefinition> processDefinitionMap = new Map<Id, ProcessDefinition>([SELECT Id, TableEnumOrId FROM ProcessDefinition WHERE Id IN:processDefinitionIds]);
         Set<String> objectTypes = getSObjectSet(processDefinitionMap.values(), 'TableEnumOrId');
         setObjectDescribes(objectTypes);
@@ -113,7 +114,7 @@ public with sharing class GetProcessInstanceData {
                 ProcessInstance curProcessInstance = processInstanceMap.get(curWorkItem.ProcessInstanceId);
                 ProcessDefinition curProcessDefinition = processDefinitionMap.get(curProcessInstance.ProcessDefinitionId);
                 User createdByUser = userMap.get(curProcessInstance.CreatedById);
-                User lastActorUser = userMap.get(curProcessInstance.LastActorId);
+                User lastActorUser = userMap.get(curWorkItem.CreatedById);
                 SObject curSObject = recordData.get(curProcessInstance.TargetObjectId);
 
                 if (curProcessInstance != null && curSObject != null) {
@@ -140,6 +141,10 @@ public with sharing class GetProcessInstanceData {
                 if (!String.isBlank(comment)) {
                     pwr.setComments(comment);
                 }
+                //TODO: manage multistep approval processes, where we need to assign next approver manually
+//                pwr.setNextApproverIds(new List<Id>{
+//                        reassignActorId
+//                });
                 pwr.setWorkitemId(curWorkItemId);
                 pwr.setAction(action);
                 Approval.ProcessResult pr = Approval.process(pwr);
