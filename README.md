@@ -1,1 +1,1 @@
-records to approve are represented as Process Instance Steps
+see https://unofficialsf.com/items-to-approve-improved/
