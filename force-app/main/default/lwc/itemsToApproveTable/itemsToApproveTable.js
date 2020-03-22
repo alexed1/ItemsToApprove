@@ -52,13 +52,13 @@ export default class ItemsToApproveTable extends LightningElement {
             fieldName: this.settings.fieldNameSubmitterURL,
             type: "url",
             typeAttributes: {label: {fieldName: this.settings.fieldNameSubmitter}, target: "_blank"}
-        },
+        } ,
         {
             label: "Recent Approver",
             fieldName: this.settings.fieldNameLastActorURL,
             type: "url",
             typeAttributes: {label: {fieldName: this.settings.fieldNameLastActor}, target: "_blank"}
-        }
+        } 
     ];
 
     apActions = [
