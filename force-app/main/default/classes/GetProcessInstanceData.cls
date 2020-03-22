@@ -118,7 +118,7 @@ public with sharing class GetProcessInstanceData {
                 SObject curSObject = recordData.get(curProcessInstance.TargetObjectId);
 
                 if (curProcessInstance != null && curSObject != null) {
-                    results.add(new ProcessInstanceData(curSObject, curWorkItem, curProcessInstance, curProcessDefinition, createdByUser, lastActorUser == createdByUser ? null : lastActorUser));
+                    results.add(new ProcessInstanceData(curSObject, curWorkItem, curProcessInstance, curProcessDefinition, createdByUser, curWorkItem.CreatedById == curProcessInstance.CreatedById ? null : lastActorUser));
                 }
             }
         }
