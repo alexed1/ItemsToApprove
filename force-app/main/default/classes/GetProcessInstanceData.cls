@@ -48,12 +48,26 @@ public with sharing class GetProcessInstanceData {
     }
 
     public static void setFieldNames(String fieldNames, Set<String> objectTypes) {
-
+        List<String> fieldNamesList = new List<String>();
+        if (fieldNames != null) {
+            fieldNamesList = fieldNames.split(',');
+        }
         for (String objectType : objectTypes) {
             String nameField = OBJECT_NAME_TO_NAME_FIELD.get(objectType);
             if (nameField != null) {
-                if (fieldNames == null || !fieldNames.toLowerCase().contains(nameField.toLowerCase())) {
+                if (fieldNames == null) {
                     FIELD_NAMES.add(nameField);
+                } else {
+                    Boolean found = false;
+                    for (String fieldName : fieldNamesList) {
+                        if (fieldName.toLowerCase().equals(nameField.toLowerCase())) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        FIELD_NAMES.add(nameField);
+                    }
                 }
             }
         }
