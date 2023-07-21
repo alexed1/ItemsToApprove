@@ -209,7 +209,7 @@ export default class ItemsToApproveTable extends LightningElement {
     getActionMenuItems() {
         return {
             type: "action",
-            typeAttributes: {rowActions: this.allowedActions, menuAlignment: "left"}
+            typeAttributes: {rowActions: this.allowedActions, menuAlignment: "auto"}
         };
     }
 
